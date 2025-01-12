@@ -6,8 +6,9 @@ import open from 'open';
 import axios from 'axios';
 import notifier from 'node-notifier';
 import path from 'path';
-import { collection, addDoc } from 'firebase/firestore';
+// import { collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 
 const app = express();
 const port = 3000;
@@ -186,8 +187,8 @@ async function insertRsiData(json) {
         res.status(500).send('Veritabanı hatası');
     }
 });*/
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
-import { db } from "./firebase.js"; // Firestore bağlantısı yapılan dosyanız
+
+
 
 app.get('/get-rsi-data', async (req, res) => {
     try {
