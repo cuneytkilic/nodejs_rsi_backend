@@ -102,9 +102,7 @@ async function get_trading_status() { // status_id=1 ise trading açık demektir
 
 async function insertRsiData(json) {
     try {
-        // Şu anki zaman +3 saat ekleme
-        const now = new Date();
-        const insertDateTime = new Date(now.setHours(now.getHours() + 3)); // UTC +3
+        const insertDateTime = new Date();
 
         // Koleksiyon referansı
         const collectionRef = collection(db, "coin_rsi");
