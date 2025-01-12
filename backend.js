@@ -8,7 +8,7 @@ import notifier from 'node-notifier';
 import path from 'path';
 // import { collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, getDocs, addDoc } from "firebase/firestore";
 
 const app = express();
 const port = 3000;
