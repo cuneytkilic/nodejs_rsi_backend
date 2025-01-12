@@ -161,6 +161,9 @@ async function insertRsiData(json) {
     }
 });*/
 
+app.get('/health', (req, res) => {
+    res.send('OK');
+});
 
 
 app.get('/get-rsi-data', async (req, res) => {
@@ -269,7 +272,7 @@ async function start_bot(){
             await bekle(0.1)
         }
         
-        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.")
+        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti. new Date().getMinutes(): " + new Date().getMinutes())
 
         if(new Date().getMinutes() == 0){
             await insertRsiData(json);
