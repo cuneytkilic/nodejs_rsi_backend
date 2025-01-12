@@ -8,8 +8,8 @@ const axios = require('axios');
 const notifier = require('node-notifier');
 const path = require('path');
 
-//const port = 3000;
-const port = process.env.PORT || 3000;
+const port = 3000;
+// const port = process.env.PORT || 3000;
 
 const cors = require('cors');  // CORS paketini dahil et
 
