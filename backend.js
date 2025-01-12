@@ -7,7 +7,10 @@ const open = require('open');
 const axios = require('axios');
 const notifier = require('node-notifier');
 const path = require('path');
-const port = 3000;
+
+//const port = 3000;
+const port = process.env.PORT || 3000;
+
 const cors = require('cors');  // CORS paketini dahil et
 
 // CORS'u etkinleştir
@@ -2548,7 +2551,6 @@ async function coinler() {
 
     await binance.futuresExchangeInfo()
     .then(json => {
-        console.log(json)
 
         for (let i = 0; i < json.symbols.length; i++) {
             if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
