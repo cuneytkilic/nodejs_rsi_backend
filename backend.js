@@ -6,7 +6,6 @@ import open from 'open';
 import axios from 'axios';
 import notifier from 'node-notifier';
 import path from 'path';
-// import { collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
 import { collection, query, where, orderBy, limit, getDocs, addDoc } from "firebase/firestore";
 
