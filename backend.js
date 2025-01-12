@@ -186,31 +186,37 @@ async function insertRsiData(json) {
         res.status(500).send('Veritabanı hatası');
     }
 });*/
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { db } from "./firebase.js"; // Firestore bağlantısı yapılan dosyanız
 
 app.get('/get-rsi-data', async (req, res) => {
     try {
         const coinRsiRef = collection(db, "coin_rsi");
 
         // 1. Adım: En son eklenen belgenin insert_date_time değerini al
-        const latestSnapshot = await coinRsiRef
-            .orderBy('insert_date_time', 'desc')
-            .limit(1)
-            .get();
+        const latestQuery = query(
+            coinRsiRef,
+            orderBy("insert_date_time", "desc"),
+            limit(1)
+        );
+        const latestSnapshot = await getDocs(latestQuery);
 
         if (latestSnapshot.empty) {
-            return res.status(404).send('Kayıt bulunamadı');
+            return res.status(404).send("Kayıt bulunamadı");
         }
 
         const latestDoc = latestSnapshot.docs[0];
         const latestDateTime = latestDoc.data().insert_date_time;
 
         // 2. Adım: Bu insert_date_time değeriyle diğer belgeleri filtrele
-        const filteredSnapshot = await coinRsiRef
-            .where('insert_date_time', '==', latestDateTime) // Belirli bir zaman değerine göre filtrele
-            .get();
+        const filteredQuery = query(
+            coinRsiRef,
+            where("insert_date_time", "==", latestDateTime)
+        );
+        const filteredSnapshot = await getDocs(filteredQuery);
 
         if (filteredSnapshot.empty) {
-            return res.status(404).send('Belirtilen tarih ve saate göre kayıt bulunamadı');
+            return res.status(404).send("Belirtilen tarih ve saate göre kayıt bulunamadı");
         }
 
         // Gelen verileri JSON formatına dönüştür
@@ -221,10 +227,11 @@ app.get('/get-rsi-data', async (req, res) => {
 
         res.json(data); // Filtrelenen tüm kayıtları döndür
     } catch (err) {
-        console.error('Firestore hatası:', err);
-        res.status(500).send('Veritabanı hatası');
+        console.error("Firestore hatası:", err);
+        res.status(500).send("Veritabanı hatası");
     }
 });
+
 
 
 
