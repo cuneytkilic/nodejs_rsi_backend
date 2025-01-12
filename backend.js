@@ -198,6 +198,7 @@ app.get('/get-rsi-data', async (req, res) => {
             id: doc.id,
             ...doc.data()
         }));
+        console.log(new Date().toLocaleTimeString() + " - get-rsi-data request geldi: " + data.length)
 
         res.json(data); // Filtrelenen tüm kayıtları döndür
     } catch (err) {
