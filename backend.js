@@ -161,7 +161,7 @@ async function insertRsiData(json) {
 
 app.get('/get-rsi-data', async (req, res) => {
     try {
-        const coinRsiRef = db.collection('coin_rsi');
+        const coinRsiRef = collection(db, "coin_rsi");
 
         // 1. Adım: En son eklenen belgenin insert_date_time değerini al
         const latestSnapshot = await coinRsiRef
