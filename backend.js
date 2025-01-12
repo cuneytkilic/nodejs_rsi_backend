@@ -27,7 +27,7 @@ let alinabilir_max_coin_sayisi = 1
 let tickSize_stepSize_list = []
 let ignored_coin_list = []
 let coin_market_cap_api_key = "ec2e891f-5007-49ed-895b-726a83728aaf" //"408297cf-3642-4237-b036-35e4e81baa33";
-let limit = 200;
+let limit_marketcap = 200;
 let trading_status = 0
 let satilmayi_bekleyen_coin_sayisi = 0;
 
@@ -45,32 +45,6 @@ const config = {
     }
 };
 
-
-start_bot();
-async function start_bot(){
-    
-    let coin_list = await coinler();
-    console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
-
-    while (true) {
-        await bekle_60dk();
-        json = []
-        taranan_coin_sayisi = 0
-
-        for(let i=0;i<coin_list.length;i++){
-            coin_tarama(coin_list[i])
-            await bekle(0.1)
-        }
-
-        while (taranan_coin_sayisi<coin_list.length) {
-            await bekle(0.1)
-        }
-        
-        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.")
-        await insertRsiData(json);
-    }
-
-}
 
 
 async function get_trading_status() { // status_id=1 ise trading açık demektir, 0 ise kapalı
@@ -273,6 +247,32 @@ let json = []
 
 
 
+
+start_bot();
+async function start_bot(){
+    
+    let coin_list = await coinler();
+    console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
+
+    while (true) {
+        await bekle_60dk();
+        json = []
+        taranan_coin_sayisi = 0
+
+        for(let i=0;i<coin_list.length;i++){
+            coin_tarama(coin_list[i])
+            await bekle(0.1)
+        }
+
+        while (taranan_coin_sayisi<coin_list.length) {
+            await bekle(0.1)
+        }
+        
+        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.")
+        await insertRsiData(json);
+    }
+
+}
 
 
 async function emir_diz(coin_name) {
