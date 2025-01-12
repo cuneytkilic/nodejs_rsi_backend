@@ -154,7 +154,7 @@ const binance = new Binance().options({
     // APISECRET: 'RgEd5U38P6Ykoah66uCljBKRLiGDDOIGFqsNdEdABHaGVVF5ORsgKZysPgqAGydc', //ergün
     
     'recvWindow': 10000000,
-    baseUrl: "http://localhost:4000"
+    baseUrl: "http://https://rsi-vwtw.onrender.com"
 });
 
 app.use(bodyparser.json({ type: 'application/json' }));
