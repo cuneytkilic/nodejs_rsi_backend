@@ -51,7 +51,7 @@ setInterval(async () => {
     } catch (err) {
         console.error('Ping failed:', err.message);
     }
-}, 300000);
+}, 150000);
 
 async function get_trading_status() { // status_id=1 ise trading açık demektir, 0 ise kapalı
     try {
