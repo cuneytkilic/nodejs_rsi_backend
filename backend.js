@@ -385,17 +385,6 @@ async function saat_calculate_bollinger_band(data){
 }
 
 
-async function hata_maili_gonder(hata) {
-    let konu = new Date().toLocaleTimeString() + " CÜNEYT 1dk BOTU DURDU! Manuel Kontrol Edilecek.";
-    let mesaj = hata;
-    await send_mail_cuneyt(konu, mesaj);
-
-    await bekle(3);
-    process.exit(1);
-}
-
-
-
 async function get_tickSize(coin_name) {
     let tickSize = null;
 
