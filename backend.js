@@ -263,8 +263,7 @@ async function start_bot(){
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
     while (true) {
-        // await bekle_60dk();
-        await bekle_60sn();
+        await bekle_60dk();
         json = []
         taranan_coin_sayisi = 0
 
@@ -278,11 +277,8 @@ async function start_bot(){
         }
         
         console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti. new Date().getMinutes(): " + new Date().getMinutes())
-
-        if(new Date().getMinutes() == 0){
-            await insertRsiData(json);
-            console.log(new Date().toLocaleTimeString() + " - veritabanına kaydedildi.")
-        }
+        await insertRsiData(json);
+        
     }
 
 }
