@@ -454,7 +454,6 @@ async function coinler() {
                 let ban_time = new Date(parseInt(json.msg.split(". ")[0].split(" ")[7])).toLocaleTimeString();
                 console.log(json.msg)
                 console.log(new Date().toLocaleTimeString() + " - coinler() ban kaldırılma zamanı: " + ban_time);
-                hata_maili_gonder(json.msg);
             }
 
             for (let i = 0; i < json.symbols.length; i++) {
@@ -467,7 +466,7 @@ async function coinler() {
 
             }
         })
-        .catch(err => { console.log(new Date().toLocaleTimeString() + " - err1: " + err); hata_maili_gonder(err); })
+        .catch(err => { console.log(new Date().toLocaleTimeString() + " - err1: " + err) })
 
     return coin_list
 }
