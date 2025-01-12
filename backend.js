@@ -1,17 +1,19 @@
-var express = require('express');
-var app = express();
-var sql = require("mssql");
-var bodyparser = require('body-parser');
-const fetch = require("node-fetch");
-const open = require('open');
-const axios = require('axios');
-const notifier = require('node-notifier');
-const path = require('path');
+import express from 'express';
+import sql from 'mssql';
+import bodyParser from 'body-parser';
+import fetch from 'node-fetch';
+import open from 'open';
+import axios from 'axios';
+import notifier from 'node-notifier';
+import path from 'path';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
 
+const app = express();
 const port = 3000;
 // const port = process.env.PORT || 3000;
 
-const cors = require('cors');  // CORS paketini dahil et
+import cors from 'cors';  // CORS paketini dahil et
 
 // CORS'u etkinleştir
 app.use(cors());
@@ -61,7 +63,7 @@ async function get_trading_status() { // status_id=1 ise trading açık demektir
 
 
 //parametre olarak gelen json dizisini, coin_rsi tablosuna insert eder.
-async function insert_rsi_data(json) {
+/*async function insert_rsi_data(json) {
     try {
         const pool = await sql.connect(config);
         let now = new Date();
@@ -94,6 +96,30 @@ async function insert_rsi_data(json) {
     catch (err) {
         console.error('Veritabanı hatası:', err);
     }
+}*/
+
+async function insertRsiData(json) {
+    try {
+        // Şu anki zaman +3 saat ekleme
+        const now = new Date();
+        const insertDateTime = new Date(now.setHours(now.getHours() + 3)); // UTC +3
+
+        // Koleksiyon referansı
+        const collectionRef = collection(db, "coin_rsi");
+
+        // JSON verisini Firestore'a eklemek için döngü
+        for (let i = 0; i < json.length; i++) {
+            await addDoc(collectionRef, {
+                coin_name: json[i].coin_name,       // Coin adı
+                rsi: json[i].rsi,                  // RSI değeri
+                insert_date_time: insertDateTime   // Ekleme zamanı
+            });
+        }
+
+        console.log("Veriler Firestore'a başarıyla eklendi.");
+    } catch (err) {
+        console.error("Firestore ekleme hatası:", err);
+    }
 }
 
 //coin_rsi tablosundaki verileri çeker ve return eder.
@@ -115,7 +141,7 @@ async function insert_rsi_data(json) {
 }*/
 
 // Veritabanından RSI verilerini alıp, JSON olarak döndüren endpoint
-app.get('/get-rsi-data', async (req, res) => {
+/*app.get('/get-rsi-data', async (req, res) => {
     try {
         const pool = await sql.connect(config);
         const result = await pool.request().query('SELECT * FROM coin_rsi WHERE insert_date_time = (SELECT MAX(insert_date_time) FROM coin_rsi)');
@@ -131,8 +157,46 @@ app.get('/get-rsi-data', async (req, res) => {
         console.error('Veritabanı hatası:', err);
         res.status(500).send('Veritabanı hatası');
     }
-});
+});*/
 
+app.get('/get-rsi-data', async (req, res) => {
+    try {
+        const coinRsiRef = db.collection('coin_rsi');
+
+        // 1. Adım: En son eklenen belgenin insert_date_time değerini al
+        const latestSnapshot = await coinRsiRef
+            .orderBy('insert_date_time', 'desc')
+            .limit(1)
+            .get();
+
+        if (latestSnapshot.empty) {
+            return res.status(404).send('Kayıt bulunamadı');
+        }
+
+        const latestDoc = latestSnapshot.docs[0];
+        const latestDateTime = latestDoc.data().insert_date_time;
+
+        // 2. Adım: Bu insert_date_time değeriyle diğer belgeleri filtrele
+        const filteredSnapshot = await coinRsiRef
+            .where('insert_date_time', '==', latestDateTime) // Belirli bir zaman değerine göre filtrele
+            .get();
+
+        if (filteredSnapshot.empty) {
+            return res.status(404).send('Belirtilen tarih ve saate göre kayıt bulunamadı');
+        }
+
+        // Gelen verileri JSON formatına dönüştür
+        const data = filteredSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        res.json(data); // Filtrelenen tüm kayıtları döndür
+    } catch (err) {
+        console.error('Firestore hatası:', err);
+        res.status(500).send('Veritabanı hatası');
+    }
+});
 
 
 
@@ -149,7 +213,7 @@ let buy_order_id_list = []
 
 let ozel_liste = ["QUICKUSDT","MOODENGUSDT","NEARUSDT","RNDRUSDT","GRTUSDT","GALAUSDT","FETUSDT","AGIXUSDT","ROSEUSDT","OCEANUSDT","ARKMUSDT","MANAUSDT","SANDUSDT","ENJUSDT","SOLUSDT","LINKUSDT","PYTHUSDT","WLDUSDT","TIAUSDT","PIXELUSDT","IOTXUSDT"]
 
-const Binance = require('node-binance-api');
+import Binance from 'node-binance-api';
 const binance = new Binance().options({
     APIKEY: 'BXL5lvixqVEZY5EsTjO54xqjan42kJPUd6547oKmtPoc9YD3AoHvuWQ4K50cinux', //cüneyt
     APISECRET: 'pmYUkQLgyKj959aoxvjtKojqT2xzO4pWfHpTeGDsTwXk4QyEz39CQasv3eK1ju6P', //cüneyt
@@ -160,8 +224,9 @@ const binance = new Binance().options({
     baseUrl: "http://https://rsi-vwtw.onrender.com"
 });
 
-app.use(bodyparser.json({ type: 'application/json' }));
-app.use(bodyparser.urlencoded({ extended: true }));
+// JSON ve URL-encoded verileri işlemek için:
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 let buy_count = 0;
 let coin_list = [];
@@ -190,7 +255,7 @@ async function start_bot(){
         }
         
         console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.")
-        await insert_rsi_data(json);
+        await insertRsiData(json);
     }
 
 }
