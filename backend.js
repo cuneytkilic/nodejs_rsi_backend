@@ -241,7 +241,7 @@ async function start_bot(){
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
     while (true) {
-        await bekle_60dk();
+        // await bekle_60dk();
         json = []
         taranan_coin_sayisi = 0
 
@@ -256,6 +256,7 @@ async function start_bot(){
         
         console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.")
         await insertRsiData(json);
+        return
     }
 
 }
@@ -934,7 +935,7 @@ async function saat_get_data(coin_name){
             await binance.futuresCandles(coin_name, "1h", {limit:490})
             .then(json => {
                 
-                if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()){
+                if (true/*new Date(json[json.length - 1][6]).getHours() == new Date().getHours()*/){
                     durum = false;
                     //json[json.length-1][1] = openPrice
                     //json[json.length-1][2] = maxPrice
