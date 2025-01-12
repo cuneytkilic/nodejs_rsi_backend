@@ -11,7 +11,11 @@ const port = 3000;
 const cors = require('cors');  // CORS paketini dahil et
 
 // CORS'u etkinleştir
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+    origin: '*', // Tüm kaynaklara izin verir.
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+}));
 
 let tickSize_stepSize_list = []
 let ignored_coin_list = []
@@ -468,6 +472,7 @@ async function coinler() {
                 if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
                     if (ignored_coin_list.indexOf(json.symbols[i].symbol) === -1) { //aranan eleman ignored_coin_list dizisinde yok ise coin_list dizisine eklenecek.
                         coin_list.push(json.symbols[i].symbol);
+                        console.log(json.symbols[i].symbol)
                     }
                 }
 
