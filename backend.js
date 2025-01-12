@@ -44,6 +44,34 @@ const config = {
     }
 };
 
+
+start_bot();
+async function start_bot(){
+    
+    let coin_list = await coinler();
+    console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
+
+    while (true) {
+        await bekle_60dk();
+        json = []
+        taranan_coin_sayisi = 0
+
+        for(let i=0;i<coin_list.length;i++){
+            coin_tarama(coin_list[i])
+            await bekle(0.1)
+        }
+
+        while (taranan_coin_sayisi<coin_list.length) {
+            await bekle(0.1)
+        }
+        
+        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.")
+        await insertRsiData(json);
+    }
+
+}
+
+
 async function get_trading_status() { // status_id=1 ise trading açık demektir, 0 ise kapalı
     try {
         const pool = await sql.connect(config);
@@ -233,33 +261,6 @@ let coin_list = [];
 let coin_arr = [];
 let taranan_coin_sayisi = 0
 let json = []
-
-start_bot();
-async function start_bot(){
-    
-    let coin_list = await coinler();
-    console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
-
-    while (true) {
-        await bekle_60dk();
-        json = []
-        taranan_coin_sayisi = 0
-
-        for(let i=0;i<coin_list.length;i++){
-            coin_tarama(coin_list[i])
-            await bekle(0.1)
-        }
-
-        while (taranan_coin_sayisi<coin_list.length) {
-            await bekle(0.1)
-        }
-        
-        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.")
-        await insertRsiData(json);
-        return
-    }
-
-}
 
 
 
