@@ -7,7 +7,7 @@ import axios from 'axios';
 import notifier from 'node-notifier';
 import path from 'path';
 import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
-import { collection, query, where, orderBy, limit, getDocs, addDoc } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, getDocs, writeBatch, doc } from "firebase/firestore";
 
 const app = express();
 const port = 3000;
@@ -51,7 +51,7 @@ setInterval(async () => {
     } catch (err) {
         console.error('Ping failed:', err.message);
     }
-}, 150000);
+}, 300000);
 
 async function get_trading_status() { // status_id=1 ise trading açık demektir, 0 ise kapalı
     try {
@@ -70,101 +70,37 @@ async function get_trading_status() { // status_id=1 ise trading açık demektir
     }
 }
 
-
-//parametre olarak gelen json dizisini, coin_rsi tablosuna insert eder.
-/*async function insert_rsi_data(json) {
-    try {
-        const pool = await sql.connect(config);
-        let now = new Date();
-        const insert_date_time = new Date(now.setHours(now.getHours() + 3)); // Saat eklenip yeni bir Date nesnesi oluşturulur. Şu anki saate 3 saat ekler ( UTC-3 ten dolayı )
-
-        for(let i=0;i<json.length;i++){
-
-            // Insert işlemi
-            const query = `
-                INSERT INTO coin_rsi (coin_name, rsi, insert_date_time)
-                VALUES (@coin_name, @rsi, @insert_date_time)
-            `;
-
-            // Parametreler
-            await pool.request()
-                .input('coin_name', sql.NVarChar, json[i].coin_name)          // coin_name, NVARCHAR
-                .input('rsi', sql.Float, json[i].rsi)                           // rsi, FLOAT
-                .input('insert_date_time', sql.DateTime, insert_date_time)  // insert_date_time, DATETIME
-                .query(query);
-
-        }
-        
-        
-
-        // console.log('Yeni veri başarıyla eklendi');
-        
-        // Veritabanı bağlantısını kapatma
-        await sql.close();
-    } 
-    catch (err) {
-        console.error('Veritabanı hatası:', err);
-    }
-}*/
-
 async function insertRsiData(json) {
     try {
         const insertDateTime = new Date();
-
+        
         // Koleksiyon referansı
         const collectionRef = collection(db, "coin_rsi");
-
-        // JSON verisini Firestore'a eklemek için döngü
+        
+        // Batch işlemi başlatılıyor
+        const batch = writeBatch(db);
+        
+        // JSON verisini batch işlemi ile Firestore'a ekleyin
         for (let i = 0; i < json.length; i++) {
-            await addDoc(collectionRef, {
+            const docRef = doc(collectionRef); // Otomatik ID oluşturulacak
+            batch.set(docRef, {
                 coin_name: json[i].coin_name,       // Coin adı
                 rsi: json[i].rsi,                  // RSI değeri
-                insert_date_time: insertDateTime   // Ekleme zamanı
+                insert_date_time: insertDateTime,   // Ekleme zamanı
+                atr_degisim: json[i].atr_degisim,
+                rank: json[i].rank, //market cap sırası
             });
         }
 
+        // Batch işlemini Firestore'a uygulayın
+        await batch.commit();
+        
         console.log("Veriler Firestore'a başarıyla eklendi.");
     } catch (err) {
         console.error("Firestore ekleme hatası:", err);
     }
 }
 
-//coin_rsi tablosundaki verileri çeker ve return eder.
-/*async function select_rsi_data() {
-    try {
-        const pool = await sql.connect(config);
-        const result = await pool.request().query('SELECT * FROM coin_rsi');
-        
-        // Veritabanından gelen tüm kayıtları JSON formatında döndür
-        const data = result.recordset; // Bu, tüm satırları JSON objesi olarak alır
-        
-        await sql.close();
-        return data; // Veritabanından gelen verileri JSON olarak döndür
-    } 
-    catch (err) {
-        console.error('Veritabanı hatası aldığımız için veriler alınamadı. HATA: ', err);
-        return []; // Hata durumunda boş bir dizi döndür
-    }
-}*/
-
-// Veritabanından RSI verilerini alıp, JSON olarak döndüren endpoint
-/*app.get('/get-rsi-data', async (req, res) => {
-    try {
-        const pool = await sql.connect(config);
-        const result = await pool.request().query('SELECT * FROM coin_rsi WHERE insert_date_time = (SELECT MAX(insert_date_time) FROM coin_rsi)');
-
-        // Veritabanından gelen tüm kayıtları JSON formatında döndür
-        const data = result.recordset;
-
-        // Veriyi JSON olarak dön
-        res.json(data);
-
-        await sql.close();
-    } catch (err) {
-        console.error('Veritabanı hatası:', err);
-        res.status(500).send('Veritabanı hatası');
-    }
-});*/
 
 app.get('/health', (req, res) => {
     res.send('OK');
@@ -251,15 +187,22 @@ let coin_list = [];
 let coin_arr = [];
 let taranan_coin_sayisi = 0
 let json = []
+let coin_market_cap = []
 
-
-
+get_coin_list_and_market_cap();
+async function get_coin_list_and_market_cap() {
+    while (true) {
+        await bekle(60*60*12);
+        coin_list = await coinler();
+        coin_market_cap = await get_all_market_ranks();
+    }
+}
 
 
 start_bot();
 async function start_bot(){
     
-    let coin_list = await coinler();
+    coin_list = await coinler();
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
     while (true) {
@@ -269,14 +212,14 @@ async function start_bot(){
 
         for(let i=0;i<coin_list.length;i++){
             coin_tarama(coin_list[i])
-            await bekle(0.1)
+            await bekle(0.01)
         }
 
         while (taranan_coin_sayisi<coin_list.length) {
             await bekle(0.1)
         }
         
-        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti. new Date().getMinutes(): " + new Date().getMinutes())
+        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.");
         await insertRsiData(json);
         
     }
@@ -300,7 +243,7 @@ async function emir_diz(coin_name) {
 async function coin_tarama(coin_name) {
     let data = await saat_calculate_indicators(coin_name);
 
-    if (data === null || typeof data === 'undefined') {
+    if (data === null || typeof data === 'undefined' || data.length<100) {
         taranan_coin_sayisi++
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + taranan_coin_sayisi)
         return
@@ -308,13 +251,18 @@ async function coin_tarama(coin_name) {
     else{
         
         let rsi = parseFloat(data[data.length-2]['rsi'])
-        // let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'])
+        let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'])
         // let rsi_2 = parseFloat(data[data.length-3]['rsi'])
         // let closePrice = parseFloat(data[data.length-2]['close'])
+
+        
+        let coin_mcap = coin_market_cap.filter(item => item.coin_name == coin_name);
 
         json.push({
             "coin_name": coin_name,
             "rsi": parseFloat(rsi.toFixed(2)),
+            "atr_degisim": atr_degisim,
+            "rank": coin_mcap[0].rank,
         });
         
         
@@ -466,6 +414,36 @@ async function get_volume_marketcap() {
     } catch (error) {
         console.error('API isteği başarısız oldu:', error.message);
         throw error;
+    }
+}
+
+async function get_all_market_ranks() {
+    try {
+        // API isteğini yap
+        const response = await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=2000&sort_dir=desc', {
+            headers: {
+                'X-CMC_PRO_API_KEY': coin_market_cap_api_key,
+            },
+        });
+
+        if (response.status !== 200) {
+            console.log('API isteği başarısız oldu: ', response.status);
+            return [];
+        }
+
+        const json = response.data;
+
+        // Tüm coinlerin adını ve sıralamasını alın
+        const ranks = json.data.map(coin => ({
+            coin_name: coin.symbol+"USDT",
+            rank: coin.cmc_rank,
+        }));
+
+        return ranks;
+
+    } catch (error) {
+        console.error('API isteği başarısız oldu (status code = 429 ise aylık request hakkı bitmiş demektir): ' + error);
+        return [];
     }
 }
 
@@ -2010,7 +1988,7 @@ async function bekle_15dk() {
 async function bekle_60dk() {
     let kalan_dk = 59 - new Date().getMinutes()
     let kalan_sn = 60 - new Date().getSeconds()
-    //console.log(new Date().toLocaleTimeString() + " - Program, " + kalan_dk + "dk - "+kalan_sn+"sn sonra başlayacak.")
+    // console.log(new Date().toLocaleTimeString() + " - Program, " + kalan_dk + "dk - "+kalan_sn+"sn sonra başlayacak.")
 
     let minute = kalan_dk * 1000 * 60;
     let second = kalan_sn * 1000;
