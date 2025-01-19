@@ -207,7 +207,7 @@ async function start_bot(){
 
     while (true) {
         await bekle_60dk();
-        console.log(new Date().toLocaleTimeString() + " - saatlik tarama başladı.");
+        // console.log(new Date().toLocaleTimeString() + " - saatlik tarama başladı.");
         json = []
         taranan_coin_sayisi = 0
 
