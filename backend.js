@@ -221,7 +221,6 @@ async function start_bot(){
         
         console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.");
         await insertRsiData(json);
-        return
     }
 
 }
