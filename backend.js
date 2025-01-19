@@ -192,9 +192,9 @@ let coin_market_cap = []
 get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
     while (true) {
+        coin_market_cap = await get_all_market_ranks();
         await bekle(60*60*12);
         coin_list = await coinler();
-        coin_market_cap = await get_all_market_ranks();
     }
 }
 
@@ -221,7 +221,7 @@ async function start_bot(){
         
         console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.");
         await insertRsiData(json);
-        
+        return
     }
 
 }
@@ -241,6 +241,7 @@ async function emir_diz(coin_name) {
 }
 
 async function coin_tarama(coin_name) {
+    
     let data = await saat_calculate_indicators(coin_name);
 
     if (data === null || typeof data === 'undefined' || data.length<100) {
@@ -249,27 +250,29 @@ async function coin_tarama(coin_name) {
         return
     }
     else{
-        
-        let rsi = parseFloat(data[data.length-2]['rsi'])
-        let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'])
-        // let rsi_2 = parseFloat(data[data.length-3]['rsi'])
-        // let closePrice = parseFloat(data[data.length-2]['close'])
 
-        
-        let coin_mcap = coin_market_cap.filter(item => item.coin_name == coin_name);
-
-        json.push({
-            "coin_name": coin_name,
-            "rsi": parseFloat(rsi.toFixed(2)),
-            "atr_degisim": atr_degisim,
-            "rank": coin_mcap[0].rank,
-        });
-        
-        
-
-        
-        taranan_coin_sayisi++
-        // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + taranan_coin_sayisi)
+            let rsi = parseFloat(data[data.length-2]['rsi'])
+            let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'])
+            // let rsi_2 = parseFloat(data[data.length-3]['rsi'])
+            // let closePrice = parseFloat(data[data.length-2]['close'])
+    
+        try {    
+            let coin_mcap = coin_market_cap.filter(item => item.coin_name == coin_name);
+            let rank = coin_mcap[0]?.rank || null; // Rank bilgisini kontrol et
+            
+            json.push({
+                "coin_name": coin_name,
+                "rsi": parseFloat(rsi.toFixed(2)),
+                "atr_degisim": atr_degisim,
+                "rank": rank,
+            });
+        } 
+        catch (error) {
+            console.log(new Date().toLocaleTimeString() + " - coin_tarama() içinde hata: " + error)
+        }
+        finally{
+            taranan_coin_sayisi++
+        }
 
     }
 
@@ -438,6 +441,8 @@ async function get_all_market_ranks() {
             coin_name: coin.symbol+"USDT",
             rank: coin.cmc_rank,
         }));
+
+        console.log(new Date().toLocaleTimeString() + " - mcap çekildi: " + ranks.length)
 
         return ranks;
 
