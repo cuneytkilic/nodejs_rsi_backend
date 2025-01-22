@@ -47,7 +47,7 @@ const config = {
 setInterval(async () => {
     try {
         const response = await axios.get('https://rsi-sven.onrender.com/health');
-        console.log(`Health Check: ${response.status}`);
+        // console.log(`Health Check: ${response.status}`);
     } catch (err) {
         console.error('Ping failed:', err.message);
     }
@@ -95,7 +95,7 @@ async function insertRsiData(json) {
         // Batch işlemini Firestore'a uygulayın
         await batch.commit();
         
-        console.log("Veriler Firestore'a başarıyla eklendi.");
+        // console.log("Veriler Firestore'a başarıyla eklendi.");
     } catch (err) {
         console.error("Firestore ekleme hatası:", err);
     }
@@ -142,7 +142,7 @@ app.get('/get-rsi-data', async (req, res) => {
             id: doc.id,
             ...doc.data()
         }));
-        console.log(new Date().toLocaleTimeString() + " - get-rsi-data request geldi: " + data.length)
+        // console.log(new Date().toLocaleTimeString() + " - get-rsi-data request geldi: " + data.length)
 
         res.json(data); // Filtrelenen tüm kayıtları döndür
     } catch (err) {
@@ -188,6 +188,8 @@ let coin_arr = [];
 let taranan_coin_sayisi = 0
 let json = []
 let coin_market_cap = []
+let sum_rsi = 0
+let count_rsi = 0
 
 get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
@@ -211,6 +213,9 @@ async function start_bot(){
         json = []
         taranan_coin_sayisi = 0
 
+        let btc_data = await saat_calculate_indicators("BTCUSDT");
+        let btc_rsi = parseFloat(btc_data[btc_data.length-2]['rsi'])
+
         for(let i=0;i<coin_list.length;i++){
             coin_tarama(coin_list[i])
             await bekle(0.01)
@@ -219,8 +224,15 @@ async function start_bot(){
         while (taranan_coin_sayisi<coin_list.length) {
             await bekle(0.1)
         }
-        
-        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti.");
+
+        let ortalama_rsi = sum_rsi/count_rsi;
+        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti. Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2));
+
+        if((btc_rsi<30 && ortalama_rsi<30) || (btc_rsi>70 && ortalama_rsi>70)){
+            // firestore veritabanına kayıt olan kişilerin e-posta adreslerine mail gönderme kodu eklenecek. 22.02.2025
+            send_mail_cuneyt("Mobil Uygulama RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
+        }
+
         await insertRsiData(json);
     }
 
@@ -255,7 +267,9 @@ async function coin_tarama(coin_name) {
             let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'])
             // let rsi_2 = parseFloat(data[data.length-3]['rsi'])
             // let closePrice = parseFloat(data[data.length-2]['close'])
-    
+            sum_rsi += rsi;
+            count_rsi++;
+
         try {    
             let coin_mcap = coin_market_cap.filter(item => item.coin_name == coin_name);
             let rank = coin_mcap[0]?.rank || null; // Rank bilgisini kontrol et
