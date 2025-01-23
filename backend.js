@@ -228,7 +228,7 @@ async function start_bot(){
         let ortalama_rsi = sum_rsi/count_rsi;
         console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti. Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2));
 
-        if((btc_rsi<60 && ortalama_rsi<60) || (btc_rsi>70 && ortalama_rsi>70)){
+        if((btc_rsi<300 && ortalama_rsi<300) || (btc_rsi>70 && ortalama_rsi>70)){
             // firestore veritabanına kayıt olan kişilerin e-posta adreslerine mail gönderme kodu eklenecek. 22.02.2025
             send_mail_cuneyt(new Date().toLocaleTimeString() + " - Mobil Uygulama RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
         }
