@@ -210,7 +210,8 @@ async function start_bot(){
 
     while (true) {
         await bekle_60dk();
-        // console.log(new Date().toLocaleTimeString() + " - saatlik tarama başladı.");
+        
+
         json = []
         taranan_coin_sayisi = 0
 
@@ -227,11 +228,12 @@ async function start_bot(){
         }
 
         let ortalama_rsi = sum_rsi/count_rsi;
-        console.log(new Date().toLocaleTimeString() + " - saatlik tarama bitti. Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2));
+        let saat = new Date(new Date().setHours(new Date().getHours() + 3)).toLocaleTimeString(); // Şu anki Türkiye saati (sunucuda 3 saat geriden geliyor diye bu şekilde 3 saat ileri aldım)
+        console.log(saat + " - saatlik tarama bitti. Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2));
 
         if((btc_rsi<300 && ortalama_rsi<300) || (btc_rsi>70 && ortalama_rsi>70)){
             // firestore veritabanına kayıt olan kişilerin e-posta adreslerine mail gönderme kodu eklenecek. 22.02.2025
-            send_mail_cuneyt(new Date().toLocaleTimeString() + " - Mobil Uygulama RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
+            send_mail_cuneyt(saat + " - Mobil Uygulama RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
         }
 
         await insertRsiData(json);
