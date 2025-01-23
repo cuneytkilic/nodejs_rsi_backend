@@ -8,6 +8,7 @@ import notifier from 'node-notifier';
 import path from 'path';
 import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
 import { collection, query, where, orderBy, limit, getDocs, writeBatch, doc } from "firebase/firestore";
+import nodemailer from 'nodemailer';
 
 const app = express();
 const port = 3000;
@@ -2649,8 +2650,7 @@ async function coinler() {
 
 
 async function send_mail(kime, konu, mesaj) {
-
-    var nodemailer = require('nodemailer');
+    
     var transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -2677,7 +2677,6 @@ async function send_mail(kime, konu, mesaj) {
 async function send_mail_cuneyt(konu, mesaj){
     let hata=false
     while (true) {
-        var nodemailer = require('nodemailer');
         var transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
