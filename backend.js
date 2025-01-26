@@ -280,8 +280,9 @@ async function coin_tarama(coin_name) {
 
             let rsi = parseFloat(data[data.length-2]['rsi'])
             let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'])
-            // let rsi_2 = parseFloat(data[data.length-3]['rsi'])
-            // let closePrice = parseFloat(data[data.length-2]['close'])
+            let rsi_2 = parseFloat(data[data.length-3]['rsi'])
+            let closePrice = parseFloat(data[data.length-2]['close'])
+
             sum_rsi += rsi;
             count_rsi++;
 
@@ -291,7 +292,9 @@ async function coin_tarama(coin_name) {
             
             json.push({
                 "coin_name": coin_name,
-                "rsi": parseFloat(rsi.toFixed(2)),
+                "rsi": parseFloat(rsi.toFixed(2)), //en son rsi değeri
+                "rsi_2": parseFloat(rsi_2.toFixed(2)), //önceki rsi değeri
+                "closePrice": closePrice,
                 "atr_degisim": atr_degisim,
                 "rank": rank,
             });
