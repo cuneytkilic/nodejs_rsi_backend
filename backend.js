@@ -87,8 +87,11 @@ async function insertRsiData(json) {
             batch.set(docRef, {
                 coin_name: json[i].coin_name,       // Coin adı
                 rsi: json[i].rsi,                  // RSI değeri
+                rsi_2: json[i].rsi_2,
+                closePrice: json[i].closePrice,
                 insert_date_time: insertDateTime,   // Ekleme zamanı
                 atr_degisim: json[i].atr_degisim,
+                atr_degisim_2: json[i].atr_degisim_2,
                 rank: json[i].rank, //market cap sırası
             });
         }
@@ -191,6 +194,7 @@ let json = []
 let coin_market_cap = []
 let sum_rsi = 0
 let count_rsi = 0
+let rsi_kucuktur_30_sayisi = 0
 
 get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
@@ -210,10 +214,10 @@ async function start_bot(){
 
     while (true) {
         await bekle_60dk();
-        
 
         json = []
         taranan_coin_sayisi = 0
+        rsi_kucuktur_30_sayisi = 0
 
         let btc_data = await saat_calculate_indicators("BTCUSDT");
         let btc_rsi = parseFloat(btc_data[btc_data.length-2]['rsi'])
@@ -228,27 +232,33 @@ async function start_bot(){
         }
 
         let ortalama_rsi = sum_rsi/count_rsi;
+        let rsi_kucuktur_30_yuzdesi = rsi_kucuktur_30_sayisi/count_rsi*100
         let saat = new Date(new Date().setHours(new Date().getHours() + 3)).toLocaleTimeString(); // Şu anki Türkiye saati (sunucuda 3 saat geriden geliyor diye bu şekilde 3 saat ileri aldım)
         console.log(saat + " - saatlik tarama bitti. Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2));
 
         if((btc_rsi<30 && ortalama_rsi<30) || (btc_rsi>70 && ortalama_rsi>70)){
             // firestore veritabanına kayıt olan kişilerin e-posta adreslerine mail gönderme kodu eklenecek. 22.02.2025
-            send_mail_cuneyt(saat + " - Güçlü RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
+            send_mail_cuneyt(saat + " - Güçlü RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
         else if(btc_rsi<30){
-            send_mail_cuneyt(saat + " - Bitcoin<30, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
+            send_mail_cuneyt(saat + " - Bitcoin<30, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
         else if(btc_rsi>70){
-            send_mail_cuneyt(saat + " - Bitcoin>70, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
+            send_mail_cuneyt(saat + " - Bitcoin>70, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
         else if(ortalama_rsi<30){
-            send_mail_cuneyt(saat + " - Piyasa<30, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
+            send_mail_cuneyt(saat + " - Piyasa<30, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
         else if(ortalama_rsi>70){
-            send_mail_cuneyt(saat + " - Piyasa>70, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2))
+            send_mail_cuneyt(saat + " - Piyasa>70, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
+        }
+
+        if(rsi_kucuktur_30_yuzdesi>=90){ //rsi<30 olan coin sayisi %90'dan fazla ise ekstra mail gönderilecek.
+            send_mail_cuneyt(saat + " - RSI<30 sayısı %90'dan fazla!", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
 
         await insertRsiData(json);
+        return
     }
 
 }
@@ -278,13 +288,18 @@ async function coin_tarama(coin_name) {
     }
     else{
 
-            let rsi = parseFloat(data[data.length-2]['rsi'])
-            let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'])
-            let rsi_2 = parseFloat(data[data.length-3]['rsi'])
+            let rsi = parseFloat(data[data.length-2]['rsi'].toFixed(2))
+            let rsi_2 = parseFloat(data[data.length-3]['rsi'].toFixed(2))
+            let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'].toFixed(2))
+            let atr_degisim_2 = parseFloat(data[data.length-3]['atr_degisim'].toFixed(2))
             let closePrice = parseFloat(data[data.length-2]['close'])
 
             sum_rsi += rsi;
             count_rsi++;
+
+            if(rsi<30){
+                rsi_kucuktur_30_sayisi++
+            }
 
         try {    
             let coin_mcap = coin_market_cap.filter(item => item.coin_name == coin_name);
@@ -292,10 +307,11 @@ async function coin_tarama(coin_name) {
             
             json.push({
                 "coin_name": coin_name,
-                "rsi": parseFloat(rsi.toFixed(2)), //en son rsi değeri
-                "rsi_2": parseFloat(rsi_2.toFixed(2)), //önceki rsi değeri
+                "rsi": rsi, //en son rsi değeri
+                "rsi_2": rsi_2, //önceki rsi değeri
                 "closePrice": closePrice,
                 "atr_degisim": atr_degisim,
+                "atr_degisim_2": atr_degisim_2,
                 "rank": rank,
             });
         } 
