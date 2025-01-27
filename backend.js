@@ -9,6 +9,8 @@ import path from 'path';
 import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
 import { collection, query, where, orderBy, limit, getDocs, writeBatch, doc } from "firebase/firestore";
 import nodemailer from 'nodemailer';
+import { exec } from 'child_process';
+
 
 const app = express();
 const port = 3000;
@@ -58,29 +60,49 @@ async function get_trading_status() { // status_id=1 ise trading açık demektir
     try {
         const pool = await sql.connect(config);
         const result = await pool.request().query('SELECT * FROM trade');
-        
+
         // İlk satırdaki status_id değerini al
         // status_id=1 ise trading açık demektir, 0 ise kapalı
         const status_id = result.recordset[0].status_id;
         await sql.close();
         return status_id
-    } 
+    }
     catch (err) {
         console.error('Veritabanı hatası aldığımız için trading_status=0 yani trading açık bot devam edecek demektir HATA: ', err);
         return 1 // 1: trading kapalı demektir
     }
 }
 
+
+
+// ip sabitleyerek, kendi bilgisayarımı sunucu olarak kullanabilirim. 5dk aralıklarla bu fonksiyonu çalıştırmak gerekiyor. 26.01.2025
+function ip_sabitle() {
+    // .bat dosyasının yolu
+    const batFilePath = 'ip_sabitle.bat';
+
+    exec(`cmd /c ${batFilePath}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Hata: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`Hata Çıktısı: ${stderr}`);
+            return;
+        }
+        console.log(`Başarı: ${stdout}`);
+    });
+}
+
 async function insertRsiData(json) {
     try {
         const insertDateTime = new Date();
-        
+
         // Koleksiyon referansı
         const collectionRef = collection(db, "coin_rsi");
-        
+
         // Batch işlemi başlatılıyor
         const batch = writeBatch(db);
-        
+
         // JSON verisini batch işlemi ile Firestore'a ekleyin
         for (let i = 0; i < json.length; i++) {
             const docRef = doc(collectionRef); // Otomatik ID oluşturulacak
@@ -98,7 +120,7 @@ async function insertRsiData(json) {
 
         // Batch işlemini Firestore'a uygulayın
         await batch.commit();
-        
+
         // console.log("Veriler Firestore'a başarıyla eklendi.");
     } catch (err) {
         console.error("Firestore ekleme hatası:", err);
@@ -169,7 +191,7 @@ app.get('/get-rsi-data', async (req, res) => {
 let tp_order_id_list = []
 let buy_order_id_list = []
 
-let ozel_liste = ["QUICKUSDT","MOODENGUSDT","NEARUSDT","RNDRUSDT","GRTUSDT","GALAUSDT","FETUSDT","AGIXUSDT","ROSEUSDT","OCEANUSDT","ARKMUSDT","MANAUSDT","SANDUSDT","ENJUSDT","SOLUSDT","LINKUSDT","PYTHUSDT","WLDUSDT","TIAUSDT","PIXELUSDT","IOTXUSDT"]
+let ozel_liste = ["QUICKUSDT", "MOODENGUSDT", "NEARUSDT", "RNDRUSDT", "GRTUSDT", "GALAUSDT", "FETUSDT", "AGIXUSDT", "ROSEUSDT", "OCEANUSDT", "ARKMUSDT", "MANAUSDT", "SANDUSDT", "ENJUSDT", "SOLUSDT", "LINKUSDT", "PYTHUSDT", "WLDUSDT", "TIAUSDT", "PIXELUSDT", "IOTXUSDT"]
 
 import Binance from 'node-binance-api';
 const binance = new Binance().options({
@@ -177,7 +199,7 @@ const binance = new Binance().options({
     APISECRET: 'pmYUkQLgyKj959aoxvjtKojqT2xzO4pWfHpTeGDsTwXk4QyEz39CQasv3eK1ju6P', //cüneyt
     // APIKEY: 'KoankrgkpVEp6u6dljT7AebXNo5nhbW07ovdDCWpxXDfrLp1mrIbNLtnpeGTJRID', //ergün
     // APISECRET: 'RgEd5U38P6Ykoah66uCljBKRLiGDDOIGFqsNdEdABHaGVVF5ORsgKZysPgqAGydc', //ergün
-    
+
     'recvWindow': 10000000,
     baseUrl: "http://https://rsi-vwtw.onrender.com"
 });
@@ -200,15 +222,15 @@ get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
     while (true) {
         coin_market_cap = await get_all_market_ranks();
-        await bekle(60*60*12);
+        await bekle(60 * 60 * 12);
         coin_list = await coinler();
     }
 }
 
 
 start_bot();
-async function start_bot(){
-    
+async function start_bot() {
+
     coin_list = await coinler();
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
@@ -220,45 +242,44 @@ async function start_bot(){
         rsi_kucuktur_30_sayisi = 0
 
         let btc_data = await saat_calculate_indicators("BTCUSDT");
-        let btc_rsi = parseFloat(btc_data[btc_data.length-2]['rsi'])
+        let btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi'])
 
-        for(let i=0;i<coin_list.length;i++){
+        for (let i = 0; i < coin_list.length; i++) {
             coin_tarama(coin_list[i])
             await bekle(0.01)
         }
 
-        while (taranan_coin_sayisi<coin_list.length) {
+        while (taranan_coin_sayisi < coin_list.length) {
             await bekle(0.1)
         }
 
-        let ortalama_rsi = sum_rsi/count_rsi;
-        let rsi_kucuktur_30_yuzdesi = rsi_kucuktur_30_sayisi/count_rsi*100
+        let ortalama_rsi = sum_rsi / count_rsi;
+        let rsi_kucuktur_30_yuzdesi = rsi_kucuktur_30_sayisi / count_rsi * 100
         let saat = new Date(new Date().setHours(new Date().getHours() + 3)).toLocaleTimeString(); // Şu anki Türkiye saati (sunucuda 3 saat geriden geliyor diye bu şekilde 3 saat ileri aldım)
         console.log(saat + " - saatlik tarama bitti. Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2));
 
-        if((btc_rsi<30 && ortalama_rsi<30) || (btc_rsi>70 && ortalama_rsi>70)){
+        if ((btc_rsi < 30 && ortalama_rsi < 30) || (btc_rsi > 70 && ortalama_rsi > 70)) {
             // firestore veritabanına kayıt olan kişilerin e-posta adreslerine mail gönderme kodu eklenecek. 22.02.2025
             send_mail_cuneyt(saat + " - Güçlü RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
-        else if(btc_rsi<30){
+        else if (btc_rsi < 30) {
             send_mail_cuneyt(saat + " - Bitcoin<30, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
-        else if(btc_rsi>70){
+        else if (btc_rsi > 70) {
             send_mail_cuneyt(saat + " - Bitcoin>70, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
-        else if(ortalama_rsi<30){
+        else if (ortalama_rsi < 30) {
             send_mail_cuneyt(saat + " - Piyasa<30, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
-        else if(ortalama_rsi>70){
+        else if (ortalama_rsi > 70) {
             send_mail_cuneyt(saat + " - Piyasa>70, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
 
-        if(rsi_kucuktur_30_yuzdesi>=90){ //rsi<30 olan coin sayisi %90'dan fazla ise ekstra mail gönderilecek.
+        if (rsi_kucuktur_30_yuzdesi >= 90) { //rsi<30 olan coin sayisi %90'dan fazla ise ekstra mail gönderilecek.
             send_mail_cuneyt(saat + " - RSI<30 sayısı %90'dan fazla!", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
 
         await insertRsiData(json);
-        return
     }
 
 }
@@ -268,43 +289,43 @@ async function emir_diz(coin_name) {
 
     let baslangic_fiyati = await get_entryPrice(coin_name)
     let kar_rate = profit_rate //0.01 = %1 aralıklı emir dizecek.
-    
+
     //aşağıdan alım emirleri oluşturuluyor.
-    for(let i=1; i<=emir_sayisi; i++){
-        let kar_orani = i*kar_rate
+    for (let i = 1; i <= emir_sayisi; i++) {
+        let kar_orani = i * kar_rate
         limit_buy_emri_with_profit_rate(coin_name, baslangic_fiyati, kar_orani)
     }
 
 }
 
 async function coin_tarama(coin_name) {
-    
+
     let data = await saat_calculate_indicators(coin_name);
 
-    if (data === null || typeof data === 'undefined' || data.length<100) {
+    if (data === null || typeof data === 'undefined' || data.length < 100) {
         taranan_coin_sayisi++
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + taranan_coin_sayisi)
         return
     }
-    else{
+    else {
 
-            let rsi = parseFloat(data[data.length-2]['rsi'].toFixed(2))
-            let rsi_2 = parseFloat(data[data.length-3]['rsi'].toFixed(2))
-            let atr_degisim = parseFloat(data[data.length-2]['atr_degisim'].toFixed(2))
-            let atr_degisim_2 = parseFloat(data[data.length-3]['atr_degisim'].toFixed(2))
-            let closePrice = parseFloat(data[data.length-2]['close'])
+        let rsi = parseFloat(data[data.length - 2]['rsi'].toFixed(2))
+        let rsi_2 = parseFloat(data[data.length - 3]['rsi'].toFixed(2))
+        let atr_degisim = parseFloat(data[data.length - 2]['atr_degisim'].toFixed(2))
+        let atr_degisim_2 = parseFloat(data[data.length - 3]['atr_degisim'].toFixed(2))
+        let closePrice = parseFloat(data[data.length - 2]['close'])
 
-            sum_rsi += rsi;
-            count_rsi++;
+        sum_rsi += rsi;
+        count_rsi++;
 
-            if(rsi<30){
-                rsi_kucuktur_30_sayisi++
-            }
+        if (rsi < 30) {
+            rsi_kucuktur_30_sayisi++
+        }
 
-        try {    
+        try {
             let coin_mcap = coin_market_cap.filter(item => item.coin_name == coin_name);
             let rank = coin_mcap[0]?.rank || null; // Rank bilgisini kontrol et
-            
+
             json.push({
                 "coin_name": coin_name,
                 "rsi": rsi, //en son rsi değeri
@@ -314,11 +335,11 @@ async function coin_tarama(coin_name) {
                 "atr_degisim_2": atr_degisim_2,
                 "rank": rank,
             });
-        } 
+        }
         catch (error) {
             console.log(new Date().toLocaleTimeString() + " - coin_tarama() içinde hata: " + error)
         }
-        finally{
+        finally {
             taranan_coin_sayisi++
         }
 
@@ -331,7 +352,7 @@ async function get_breakEvenPrice(symbol) {
     try {
         // Pozisyon bilgilerini çek
         const positions = await binance.futuresPositionRisk();
-        
+
         // İlgili coin çifti için pozisyonu bul
         const position = positions.find(pos => pos.symbol === symbol);
 
@@ -339,7 +360,7 @@ async function get_breakEvenPrice(symbol) {
             console.log('Açık pozisyon bulunamadı!');
             return 0;
         }
-        else{
+        else {
             return position.breakEvenPrice
         }
     } catch (error) {
@@ -386,7 +407,7 @@ async function countLimitSellOrders(coin_name) { //openOrders sekmesinde açık 
 
         console.log(`${coin_name} LIMIT SELL emir sayısı:`, count);
         return count;
-    } 
+    }
     catch (error) {
         console.error('Hata:', error);
     }
@@ -396,13 +417,13 @@ async function countLimitSellOrders(coin_name) { //openOrders sekmesinde açık 
 function bildirimGonder(title, message, side) {
     let image_path = null
 
-    if(side == "buy"){
+    if (side == "buy") {
         image_path = 'D:\\buy.png'
     }
-    else if(side == "sell"){
+    else if (side == "sell") {
         image_path = 'D:\\sell.png'
     }
-    else{
+    else {
         image_path = 'D:\\bildirim.png'
     }
 
@@ -421,21 +442,21 @@ function bildirimGonder(title, message, side) {
     );
 }
 
-async function garbage_collector_baslat(){
+async function garbage_collector_baslat() {
     while (true) {
         await bekle_60dk();
-        if(global.gc){
+        if (global.gc) {
             global.gc();
         }
-        else{
+        else {
             console.log('Garbage collection not available. Set --expose-gc when launching Node.');
         }
     }
 }
 
-async function amount_hesapla(){
+async function amount_hesapla() {
     let current_balance = await get_balance()
-    let amount = parseFloat((current_balance/alinabilir_max_coin_sayisi/7).toFixed(2)) // 5: her coin en fazla %50 terste kalabilir.
+    let amount = parseFloat((current_balance / alinabilir_max_coin_sayisi / 7).toFixed(2)) // 5: her coin en fazla %50 terste kalabilir.
     return amount;
 }
 
@@ -455,8 +476,8 @@ async function get_volume_marketcap() {
         const json = response.data;
         let list = []
         // console.log('Alınan veri:', json);
-        for(let i=0;i<json.data.length;i++){
-            list.push({'coin_name':json.data[i].symbol, 'volume_24h': json.data[i].quote.USD.volume_24h, 'market_cap':json.data[i].quote.USD.market_cap,'volume_mcap_rate': json.data[i].quote.USD.volume_24h/json.data[i].quote.USD.market_cap})
+        for (let i = 0; i < json.data.length; i++) {
+            list.push({ 'coin_name': json.data[i].symbol, 'volume_24h': json.data[i].quote.USD.volume_24h, 'market_cap': json.data[i].quote.USD.market_cap, 'volume_mcap_rate': json.data[i].quote.USD.volume_24h / json.data[i].quote.USD.market_cap })
             // console.log(json.data[i].symbol + "\t\t" + (json.data[i].quote.USD.volume_24h/json.data[i].quote.USD.market_cap).toFixed(2) + "\t\t\t" + json.data[i].cmc_rank + "\t\t\t" + json.data[i].quote.USD.volume_change_24h.toFixed(2) + "\t\t\t\t" + json.data[i].quote.USD.percent_change_24h.toFixed(2))
         }
         return list
@@ -486,7 +507,7 @@ async function get_all_market_ranks() {
 
         // Tüm coinlerin adını ve sıralamasını alın
         const ranks = json.data.map(coin => ({
-            coin_name: coin.symbol+"USDT",
+            coin_name: coin.symbol + "USDT",
             rank: coin.cmc_rank,
         }));
 
@@ -500,11 +521,11 @@ async function get_all_market_ranks() {
     }
 }
 
-async function get_market_rank(coin_name) { 
+async function get_market_rank(coin_name) {
     try {
         // "USDT" kısmını kaldırarak temiz bir coin sembolü elde edelim
         const pure_coin_name = coin_name.replace(/USDT$/i, ''); // Sadece "USDT" kısmını temizler
-        
+
         const response = await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=5000&sort_dir=desc', {
             headers: {
                 'X-CMC_PRO_API_KEY': coin_market_cap_api_key,
@@ -535,7 +556,7 @@ async function get_market_rank(coin_name) {
 
 
 async function get_btc_funding_rate() {
-    let btc_funding_rate = await binance.futuresMarkPrice( "BTCUSDT" ).then(json => json.lastFundingRate*100)
+    let btc_funding_rate = await binance.futuresMarkPrice("BTCUSDT").then(json => json.lastFundingRate * 100)
     return btc_funding_rate
 }
 
@@ -549,49 +570,49 @@ async function get_all_tickSize_stepSize() {//tek seferde tüm coinlerin tickSiz
 
                 let tickSize = null;
                 let stepSize = null;
-                
+
                 //tickSize => quantity için kullanılacak.
                 if (json.symbols[i].filters[0].tickSize.indexOf("1") == 0) {
                     tickSize = 0;
                 } else {
                     tickSize = json.symbols[i].filters[0].tickSize.indexOf("1") - 1;
                 }
-                
+
                 //stepSize => price için kullanılacak.
-                if(json.symbols[i].filters[2].stepSize.indexOf("1") == 0) {
+                if (json.symbols[i].filters[2].stepSize.indexOf("1") == 0) {
                     stepSize = 0;
                 } else {
                     stepSize = json.symbols[i].filters[2].stepSize.indexOf("1") - 1;
                 }
 
-                tickSize_stepSize_list.push({'coin_name': json.symbols[i].symbol, 'tickSize': tickSize, 'stepSize': stepSize});
+                tickSize_stepSize_list.push({ 'coin_name': json.symbols[i].symbol, 'tickSize': tickSize, 'stepSize': stepSize });
 
                 //console.log(new Date().toLocaleTimeString() + " - " + i + " - coin_name: " + json.symbols[i].symbol + " - tickSize: " + tickSize + " - stepSize: " + stepSize);
-                
+
             }
         })
         .catch(err => console.log(new Date().toLocaleTimeString() + " -1err- " + err));
 
 }
 
-async function find_tickSize_price(coin_name){ //bot başlarken çekilen tickSize verileri içinde arama yaparak daha hızlı sonuca ulaşabiliriz.
-    for(let i=0; i<tickSize_stepSize_list.length; i++){
-        if(tickSize_stepSize_list[i].coin_name == coin_name){
+async function find_tickSize_price(coin_name) { //bot başlarken çekilen tickSize verileri içinde arama yaparak daha hızlı sonuca ulaşabiliriz.
+    for (let i = 0; i < tickSize_stepSize_list.length; i++) {
+        if (tickSize_stepSize_list[i].coin_name == coin_name) {
             return tickSize_stepSize_list[i].tickSize;
         }
     }
 }
 
-async function find_stepSize_quantity(coin_name){ //bot başlarken çekilen stepSize verileri içinde arama yaparak daha hızlı sonuca ulaşabiliriz.
-    for(let i=0; i<tickSize_stepSize_list.length; i++){
-        if(tickSize_stepSize_list[i].coin_name == coin_name){
+async function find_stepSize_quantity(coin_name) { //bot başlarken çekilen stepSize verileri içinde arama yaparak daha hızlı sonuca ulaşabiliriz.
+    for (let i = 0; i < tickSize_stepSize_list.length; i++) {
+        if (tickSize_stepSize_list[i].coin_name == coin_name) {
             return tickSize_stepSize_list[i].stepSize;
         }
     }
 }
 
 async function btc_rsi() {
-    
+
     //RSI HESAPLAMA İÇİN KULLANILAN DEĞİŞKENLER
     let rsi_period = 14;
     let gain = [], loss = [], change = [];
@@ -600,68 +621,68 @@ async function btc_rsi() {
     let closePrice_list = [];
     let minPrice_list = [];
     let maxPrice_list = [];
-    
+
     let nesne = [ //3 elemanlı bir dizi => her elemanı bir json verisi tutuyor.
-        {'time': '1m', 'rsi': null},
-        {'time': '15m', 'rsi': null},
-        {'time': '1h', 'rsi': null},
+        { 'time': '1m', 'rsi': null },
+        { 'time': '15m', 'rsi': null },
+        { 'time': '1h', 'rsi': null },
     ];
 
-    for(let i=0;i<nesne.length;i++){
-        
+    for (let i = 0; i < nesne.length; i++) {
+
         await binance.futuresCandles("BTCUSDT", nesne[i].time)
-        .then(json => {
-    
-            //RSI hesaplamak için kullanılacak veriler
-            for (let i = 1; i < rsi_period + 1; i++) {
-                let change_price = (parseFloat(json[i][4]) - parseFloat(json[i - 1][4]))
-                change.push(change_price);
-                if (change_price >= 0) {
-                    gain.push(change_price);
-                    loss.push(0);
-                    sum_gain += change_price;
-                } else {
-                    loss.push(change_price);
-                    gain.push(0);
-                    sum_loss -= change_price;
+            .then(json => {
+
+                //RSI hesaplamak için kullanılacak veriler
+                for (let i = 1; i < rsi_period + 1; i++) {
+                    let change_price = (parseFloat(json[i][4]) - parseFloat(json[i - 1][4]))
+                    change.push(change_price);
+                    if (change_price >= 0) {
+                        gain.push(change_price);
+                        loss.push(0);
+                        sum_gain += change_price;
+                    } else {
+                        loss.push(change_price);
+                        gain.push(0);
+                        sum_loss -= change_price;
+                    }
+
                 }
-    
-            }
-    
-            let avg_gain = sum_gain / rsi_period;
-            let avg_loss = sum_loss / rsi_period;
-            let rs = avg_gain / avg_loss;
-            rsi = 100 - (100 / (1 + rs));
-            let gecici_list = [] //stokastik rsi %K ve %D hesaplamak için kullanılacak
-    
-    
-            for (let i = rsi_period + 1; i < json.length - 1; i++) {
-                let change_price = (parseFloat(json[i][4]) - parseFloat(json[i - 1][4]))
-                if (change_price >= 0) {
-                    avg_gain = ((avg_gain * (rsi_period - 1)) + change_price) / rsi_period;
-                    avg_loss = ((avg_loss * (rsi_period - 1)) + 0) / rsi_period;
-                } else {
-                    avg_gain = ((avg_gain * (rsi_period - 1)) + 0) / rsi_period;
-                    avg_loss = ((avg_loss * (rsi_period - 1)) - change_price) / rsi_period;
-                }
-                rs = avg_gain / avg_loss;
+
+                let avg_gain = sum_gain / rsi_period;
+                let avg_loss = sum_loss / rsi_period;
+                let rs = avg_gain / avg_loss;
                 rsi = 100 - (100 / (1 + rs));
-                rsi_list.push(rsi);
-                closePrice_list.push(json[i][4]);
-                minPrice_list.push(json[i][3]);
-                maxPrice_list.push(json[i][2]);
-    
-                if (i > json.length - 20) { //bu if koşulundakiler, stokastik rsi %K ve %D hesaplamak için kullanılacak
-                    gecici_list.push(rsi);
+                let gecici_list = [] //stokastik rsi %K ve %D hesaplamak için kullanılacak
+
+
+                for (let i = rsi_period + 1; i < json.length - 1; i++) {
+                    let change_price = (parseFloat(json[i][4]) - parseFloat(json[i - 1][4]))
+                    if (change_price >= 0) {
+                        avg_gain = ((avg_gain * (rsi_period - 1)) + change_price) / rsi_period;
+                        avg_loss = ((avg_loss * (rsi_period - 1)) + 0) / rsi_period;
+                    } else {
+                        avg_gain = ((avg_gain * (rsi_period - 1)) + 0) / rsi_period;
+                        avg_loss = ((avg_loss * (rsi_period - 1)) - change_price) / rsi_period;
+                    }
+                    rs = avg_gain / avg_loss;
+                    rsi = 100 - (100 / (1 + rs));
+                    rsi_list.push(rsi);
+                    closePrice_list.push(json[i][4]);
+                    minPrice_list.push(json[i][3]);
+                    maxPrice_list.push(json[i][2]);
+
+                    if (i > json.length - 20) { //bu if koşulundakiler, stokastik rsi %K ve %D hesaplamak için kullanılacak
+                        gecici_list.push(rsi);
+                    }
                 }
-            }
-    
-        })
+
+            })
 
         nesne[i].rsi = parseFloat(rsi).toFixed(2);
 
     }
-    
+
 
     return nesne;
 
@@ -672,55 +693,55 @@ async function btc_rsi() {
 
 
 async function calculate_adx(coin_name) {
-    
+
     let data = [];
     let period = 14;
-    
+
     await binance.futuresCandles(coin_name, '1h')
-    .then(json => {
-        for(let i=0;i<json.length;i++){
-            data.push({
-                'open_time': parseFloat(json[i][0]),
-                'open_price': parseFloat(json[i][1]),
-                'high_price': parseFloat(json[i][2]),
-                'low_price': parseFloat(json[i][3]),
-                'close_price': parseFloat(json[i][4]),
-                'volume': parseFloat(json[i][5]),
-                'close_time': parseFloat(json[i][6]),
-                'true_range': null, //ATR hesaplamak için kullanılacak.
-                'atr': null, 
-                'high_prevHigh': null, //adx hesaplamada kullanılacak. High - Previous High
-                'prevLow_low': null, //adx hesaplamada kullanılacak. Previous Low -  Low
-                'positive_dx': null,
-                'negative_dx': null,
-                'smooth_positive_dx': null,
-                'smooth_negative_dx': null,
-                'positive_dmi': null,
-                'negative_dmi': null,
-                'dx': null,
-                'adx': null,
-            })
-        }
-    })
+        .then(json => {
+            for (let i = 0; i < json.length; i++) {
+                data.push({
+                    'open_time': parseFloat(json[i][0]),
+                    'open_price': parseFloat(json[i][1]),
+                    'high_price': parseFloat(json[i][2]),
+                    'low_price': parseFloat(json[i][3]),
+                    'close_price': parseFloat(json[i][4]),
+                    'volume': parseFloat(json[i][5]),
+                    'close_time': parseFloat(json[i][6]),
+                    'true_range': null, //ATR hesaplamak için kullanılacak.
+                    'atr': null,
+                    'high_prevHigh': null, //adx hesaplamada kullanılacak. High - Previous High
+                    'prevLow_low': null, //adx hesaplamada kullanılacak. Previous Low -  Low
+                    'positive_dx': null,
+                    'negative_dx': null,
+                    'smooth_positive_dx': null,
+                    'smooth_negative_dx': null,
+                    'positive_dmi': null,
+                    'negative_dmi': null,
+                    'dx': null,
+                    'adx': null,
+                })
+            }
+        })
 
     //True Range Hesaplama BAŞI
-    for(let i=1;i<data.length;i++){
-        let high_low = data[i].high_price - data[i].low_price; 
-        let high_prevClose = Math.abs(data[i].high_price - data[i-1].close_price);
-        let low_prevClose = Math.abs(data[i].low_price - data[i-1].close_price);
+    for (let i = 1; i < data.length; i++) {
+        let high_low = data[i].high_price - data[i].low_price;
+        let high_prevClose = Math.abs(data[i].high_price - data[i - 1].close_price);
+        let low_prevClose = Math.abs(data[i].low_price - data[i - 1].close_price);
         let true_range = Math.max(high_low, high_prevClose, low_prevClose);
         //console.log(high_low + ", \t" + high_prevClose + ", \t" + low_prevClose + " => \t" + true_range)
         data[i].true_range = true_range;
 
 
         //ADX hesaplamada kullanılacak veriler alttadır.
-        data[i].high_prevHigh = data[i].high_price - data[i-1].high_price;
-        data[i].prevLow_low = data[i-1].low_price - data[i].low_price;
-        
-        if(data[i].high_prevHigh > data[i].prevLow_low && data[i].high_prevHigh > 0)    data[i].positive_dx = data[i].high_prevHigh;
+        data[i].high_prevHigh = data[i].high_price - data[i - 1].high_price;
+        data[i].prevLow_low = data[i - 1].low_price - data[i].low_price;
+
+        if (data[i].high_prevHigh > data[i].prevLow_low && data[i].high_prevHigh > 0) data[i].positive_dx = data[i].high_prevHigh;
         else data[i].positive_dx = 0;
 
-        if(data[i].prevLow_low > data[i].high_prevHigh && data[i].prevLow_low > 0)      data[i].negative_dx = data[i].prevLow_low;
+        if (data[i].prevLow_low > data[i].high_prevHigh && data[i].prevLow_low > 0) data[i].negative_dx = data[i].prevLow_low;
         else data[i].negative_dx = 0;
 
     }
@@ -730,46 +751,46 @@ async function calculate_adx(coin_name) {
     let sum_true_range = 0;
     let sum_positive_dx = 0; //adx hesaplamada kullanılacak.
     let sum_negative_dx = 0; //adx hesaplamada kullanılacak.
-    
-    for(let i=0;i<period;i++){
+
+    for (let i = 0; i < period; i++) {
         sum_true_range += data[i].true_range;
         sum_positive_dx += data[i].positive_dx; //adx hesaplamada kullanılacak.
         sum_negative_dx += data[i].negative_dx; //adx hesaplamada kullanılacak.
     }
 
-    data[period-1].atr = sum_true_range/period;
-    data[period-1].smooth_positive_dx = sum_positive_dx/period; //adx hesaplamada kullanılacak.
-    data[period-1].smooth_negative_dx = sum_negative_dx/period; //adx hesaplamada kullanılacak.
-    data[period-1].positive_dmi = data[period-1].smooth_positive_dx/data[period-1].atr*100; //adx hesaplamada kullanılacak.
-    data[period-1].negative_dmi = data[period-1].smooth_negative_dx/data[period-1].atr*100; //adx hesaplamada kullanılacak.
-    data[period-1].dx = Math.abs(data[period-1].positive_dmi-data[period-1].negative_dmi)/(data[period-1].positive_dmi+data[period-1].negative_dmi)*100; //adx hesaplamada kullanılacak.
+    data[period - 1].atr = sum_true_range / period;
+    data[period - 1].smooth_positive_dx = sum_positive_dx / period; //adx hesaplamada kullanılacak.
+    data[period - 1].smooth_negative_dx = sum_negative_dx / period; //adx hesaplamada kullanılacak.
+    data[period - 1].positive_dmi = data[period - 1].smooth_positive_dx / data[period - 1].atr * 100; //adx hesaplamada kullanılacak.
+    data[period - 1].negative_dmi = data[period - 1].smooth_negative_dx / data[period - 1].atr * 100; //adx hesaplamada kullanılacak.
+    data[period - 1].dx = Math.abs(data[period - 1].positive_dmi - data[period - 1].negative_dmi) / (data[period - 1].positive_dmi + data[period - 1].negative_dmi) * 100; //adx hesaplamada kullanılacak.
 
     //ilk atr hesaplaması üstte periyot sayısına göre ortalama alınarak hesaplanıyor. Sonraki ATR değerleri yumuşatılarak alttaki gibi hesaplanıyor.
-    for(let i=period;i<data.length;i++){
-        data[i].atr = ((data[i-1].atr*(period-1))+data[i].true_range)/period;
-        data[i].smooth_positive_dx = ((data[i-1].smooth_positive_dx*(period-1))+data[i].positive_dx)/period; //adx hesaplamada kullanılacak.
-        data[i].smooth_negative_dx = ((data[i-1].smooth_negative_dx*(period-1))+data[i].negative_dx)/period; //adx hesaplamada kullanılacak.
-        data[i].positive_dmi = data[i].smooth_positive_dx/data[i].atr*100; //adx hesaplamada kullanılacak.
-        data[i].negative_dmi = data[i].smooth_negative_dx/data[i].atr*100; //adx hesaplamada kullanılacak.
-        data[i].dx = Math.abs(data[i].positive_dmi-data[i].negative_dmi)/(data[i].positive_dmi+data[i].negative_dmi)*100; //adx hesaplamada kullanılacak.
+    for (let i = period; i < data.length; i++) {
+        data[i].atr = ((data[i - 1].atr * (period - 1)) + data[i].true_range) / period;
+        data[i].smooth_positive_dx = ((data[i - 1].smooth_positive_dx * (period - 1)) + data[i].positive_dx) / period; //adx hesaplamada kullanılacak.
+        data[i].smooth_negative_dx = ((data[i - 1].smooth_negative_dx * (period - 1)) + data[i].negative_dx) / period; //adx hesaplamada kullanılacak.
+        data[i].positive_dmi = data[i].smooth_positive_dx / data[i].atr * 100; //adx hesaplamada kullanılacak.
+        data[i].negative_dmi = data[i].smooth_negative_dx / data[i].atr * 100; //adx hesaplamada kullanılacak.
+        data[i].dx = Math.abs(data[i].positive_dmi - data[i].negative_dmi) / (data[i].positive_dmi + data[i].negative_dmi) * 100; //adx hesaplamada kullanılacak.
     }
     //ATR Hesaplama SONU
 
-    
+
     //ADX Hesaplama BAŞI
     let sum_dx = 0;
-    for(let i=period-1;i<(2*period)-1;i++){
+    for (let i = period - 1; i < (2 * period) - 1; i++) {
         sum_dx += data[i].dx;
     }
-    data[(2*period)-2].adx = sum_dx/period;
+    data[(2 * period) - 2].adx = sum_dx / period;
 
     //ilk adx değeri önceki periyot(14) ortalaması alınır. Sonraki adx değerleri yumuşatılarak alttaki şekilde hesaplanır.
-    for(let i=(2*period)-1;i<data.length;i++){
-        data[i].adx = ((data[i-1].adx*(period-1))+data[i].dx)/period;
+    for (let i = (2 * period) - 1; i < data.length; i++) {
+        data[i].adx = ((data[i - 1].adx * (period - 1)) + data[i].dx) / period;
     }
     //ADX Hesaplama SONU
-    
-    return parseFloat(data[data.length-2].adx);
+
+    return parseFloat(data[data.length - 2].adx);
 }
 
 
@@ -785,7 +806,7 @@ async function calculate_adx(coin_name) {
 
 
 
-async function dk_calculate_indicators(coin_name){
+async function dk_calculate_indicators(coin_name) {
 
     let data = await dk_get_data(coin_name)
 
@@ -795,8 +816,8 @@ async function dk_calculate_indicators(coin_name){
 
     try {
         await dk_calculate_rsi(data);
-        await dk_calculate_atr(data);  
-    } 
+        await dk_calculate_atr(data);
+    }
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - calculate_indicators() hata: " + error)
         return
@@ -807,56 +828,56 @@ async function dk_calculate_indicators(coin_name){
 }
 
 
-async function dk_get_data(coin_name){
+async function dk_get_data(coin_name) {
     let data = []
     let durum = true;
 
     try {
 
         while (durum == true) {
-            
-            await binance.futuresCandles(coin_name, "1m", {limit:490})
-            .then(json => {
-                // if (!(json && json.length > 0)){
-                //     console.log(new Date().toLocaleTimeString() + " - hata: " + coin_name + " - json tanımlı değil.")
-                //     durum == false
-                //     return
-                // }
 
-                if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours() && new Date(json[json.length - 1][6]).getMinutes() == new Date().getMinutes()){
-                    durum = false;
-                    //json[json.length-1][1] = openPrice
-                    //json[json.length-1][2] = maxPrice
-                    //json[json.length-1][3] = minPrice
-                    //json[json.length-1][4] = closePrice
+            await binance.futuresCandles(coin_name, "1m", { limit: 490 })
+                .then(json => {
+                    // if (!(json && json.length > 0)){
+                    //     console.log(new Date().toLocaleTimeString() + " - hata: " + coin_name + " - json tanımlı değil.")
+                    //     durum == false
+                    //     return
+                    // }
 
-                    for(let i=0;i<json.length;i++){
-                        data.push({
-                            'coin_name:': coin_name,
-                            'open': parseFloat(json[i][1]), 
-                            'high': parseFloat(json[i][2]), 
-                            'low': parseFloat(json[i][3]), 
-                            'close': parseFloat(json[i][4]), 
-                            'volume': parseFloat(json[i][5]), 
-                            'date': new Date(json[i][6]).toLocaleDateString(), 
-                            'time': new Date(json[i][6]).toLocaleTimeString(),
-                            'saat': new Date(json[i][6]).getHours()
-                        })
+                    if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours() && new Date(json[json.length - 1][6]).getMinutes() == new Date().getMinutes()) {
+                        durum = false;
+                        //json[json.length-1][1] = openPrice
+                        //json[json.length-1][2] = maxPrice
+                        //json[json.length-1][3] = minPrice
+                        //json[json.length-1][4] = closePrice
+
+                        for (let i = 0; i < json.length; i++) {
+                            data.push({
+                                'coin_name:': coin_name,
+                                'open': parseFloat(json[i][1]),
+                                'high': parseFloat(json[i][2]),
+                                'low': parseFloat(json[i][3]),
+                                'close': parseFloat(json[i][4]),
+                                'volume': parseFloat(json[i][5]),
+                                'date': new Date(json[i][6]).toLocaleDateString(),
+                                'time': new Date(json[i][6]).toLocaleTimeString(),
+                                'saat': new Date(json[i][6]).getHours()
+                            })
+                        }
+
                     }
-
-                } 
-                else {
-                    // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
-                    durum = true;
-                }   
-            })
+                    else {
+                        // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
+                        durum = true;
+                    }
+                })
 
             if (durum == true) {
                 await bekle(1);
             }
 
         }
-    } 
+    }
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data() hata: " + error)
         return null
@@ -866,70 +887,70 @@ async function dk_get_data(coin_name){
     return data
 }
 
-async function dk_calculate_rsi(data){
+async function dk_calculate_rsi(data) {
 
     let rsi_period = 14
 
-    for(let i=1;i<data.length;i++){
-        
-        if(data[i]['close']>data[i-1]['close']){
-            data[i]['upward_movement']=data[i]['close']-data[i-1]['close']
-            
+    for (let i = 1; i < data.length; i++) {
+
+        if (data[i]['close'] > data[i - 1]['close']) {
+            data[i]['upward_movement'] = data[i]['close'] - data[i - 1]['close']
+
         }
-        else{
-            data[i]['upward_movement']=0
+        else {
+            data[i]['upward_movement'] = 0
         }
 
-        if(data[i]['close']<data[i-1]['close']){
-            data[i]['downward_movement']=data[i-1]['close']-data[i]['close']
+        if (data[i]['close'] < data[i - 1]['close']) {
+            data[i]['downward_movement'] = data[i - 1]['close'] - data[i]['close']
         }
-        else{
-            data[i]['downward_movement']=0
+        else {
+            data[i]['downward_movement'] = 0
         }
     }
 
 
-    let sum_upward=0
-    let sum_downward=0
+    let sum_upward = 0
+    let sum_downward = 0
 
-    for(let i=rsi_period;i>0;i--){
+    for (let i = rsi_period; i > 0; i--) {
         sum_upward += data[i]['upward_movement']
         sum_downward += data[i]['downward_movement']
     }
 
-    data[rsi_period]['average_upward_movement']=sum_upward/rsi_period
-    data[rsi_period]['average_downward_movement']=sum_downward/rsi_period
-    data[rsi_period]['relative_strength']=data[rsi_period]['average_upward_movement']/data[rsi_period]['average_downward_movement']
-    data[rsi_period]['rsi']=100-(100/(data[rsi_period]['relative_strength']+1))
+    data[rsi_period]['average_upward_movement'] = sum_upward / rsi_period
+    data[rsi_period]['average_downward_movement'] = sum_downward / rsi_period
+    data[rsi_period]['relative_strength'] = data[rsi_period]['average_upward_movement'] / data[rsi_period]['average_downward_movement']
+    data[rsi_period]['rsi'] = 100 - (100 / (data[rsi_period]['relative_strength'] + 1))
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['average_upward_movement']=((data[i-1]['average_upward_movement']*(rsi_period-1))+data[i]['upward_movement'])/rsi_period
-        data[i]['average_downward_movement']=((data[i-1]['average_downward_movement']*(rsi_period-1))+data[i]['downward_movement'])/rsi_period
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['average_upward_movement'] = ((data[i - 1]['average_upward_movement'] * (rsi_period - 1)) + data[i]['upward_movement']) / rsi_period
+        data[i]['average_downward_movement'] = ((data[i - 1]['average_downward_movement'] * (rsi_period - 1)) + data[i]['downward_movement']) / rsi_period
     }
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['relative_strength']=data[i]['average_upward_movement']/data[i]['average_downward_movement']
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['relative_strength'] = data[i]['average_upward_movement'] / data[i]['average_downward_movement']
     }
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['rsi']=100-(100/(data[i]['relative_strength']+1))
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['rsi'] = 100 - (100 / (data[i]['relative_strength'] + 1))
     }
-    
+
 }
 
 
-async function dk_calculate_atr(data){
+async function dk_calculate_atr(data) {
     //atr hesaplama başı
-    let atr=null
-    let atr_period=14
+    let atr = null
+    let atr_period = 14
     let toplam_tr = 0;
     let first_tr = data[0]['high'] - data[0]['low']
     toplam_tr += first_tr;
 
     for (let i = 1; i < atr_period; i++) {
         let tr1 = data[0]['high'] - data[0]['low']
-        let tr2 = Math.abs(data[i]['high'] - data[i-1]['close']);
-        let tr3 = Math.abs(data[i]['low'] - data[i-1]['close'])
+        let tr2 = Math.abs(data[i]['high'] - data[i - 1]['close']);
+        let tr3 = Math.abs(data[i]['low'] - data[i - 1]['close'])
         let max_tr = Math.max(tr1, tr2, tr3);
         toplam_tr += max_tr;
     }
@@ -938,8 +959,8 @@ async function dk_calculate_atr(data){
 
     for (let i = atr_period; i < data.length; i++) {
         let tr1 = data[i]['high'] - data[i]['low'];
-        let tr2 = Math.abs(data[i]['high'] - data[i-1]['close']);
-        let tr3 = Math.abs(data[i]['low'] - data[i-1]['close'])
+        let tr2 = Math.abs(data[i]['high'] - data[i - 1]['close']);
+        let tr3 = Math.abs(data[i]['low'] - data[i - 1]['close'])
         let current_atr = Math.max(tr1, tr2, tr3);
 
         atr = ((atr * (atr_period - 1)) + current_atr) / atr_period;
@@ -950,7 +971,7 @@ async function dk_calculate_atr(data){
 }
 
 
-async function saat_calculate_indicators(coin_name){
+async function saat_calculate_indicators(coin_name) {
 
     let data = await saat_get_data(coin_name)
     if (data === null || typeof data === 'undefined' || data.length == 0) {
@@ -962,7 +983,7 @@ async function saat_calculate_indicators(coin_name){
         await saat_calculate_atr(data);
         // await saat_calculate_stokastik_rsi(data);
         // await saat_calculate_bollinger_band(data);    
-    } 
+    }
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - calculate_indicators() hata: " + error)
         return null
@@ -972,7 +993,7 @@ async function saat_calculate_indicators(coin_name){
 
 }
 // let get_data_sayisi = 0
-async function saat_get_data(coin_name){
+async function saat_get_data(coin_name) {
     let data = []
     let durum = true;
     // get_data_sayisi++
@@ -980,44 +1001,44 @@ async function saat_get_data(coin_name){
     try {
 
         while (durum == true) {
-            
-            await binance.futuresCandles(coin_name, "1h", {limit:490})
-            .then(json => {
-                
-                if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()){
-                    durum = false;
-                    //json[json.length-1][1] = openPrice
-                    //json[json.length-1][2] = maxPrice
-                    //json[json.length-1][3] = minPrice
-                    //json[json.length-1][4] = closePrice
 
-                    for(let i=0;i<json.length;i++){
-                        data.push({
-                            'coin_name': coin_name,
-                            'open': parseFloat(json[i][1]), 
-                            'high': parseFloat(json[i][2]), 
-                            'low': parseFloat(json[i][3]), 
-                            'close': parseFloat(json[i][4]), 
-                            'volume': parseFloat(json[i][5]), 
-                            'date': new Date(json[i][6]).toLocaleDateString(), 
-                            'time': new Date(json[i][6]).toLocaleTimeString(),
-                            'saat': new Date(json[i][6]).getHours()
-                        })
+            await binance.futuresCandles(coin_name, "1h", { limit: 490 })
+                .then(json => {
+
+                    if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
+                        durum = false;
+                        //json[json.length-1][1] = openPrice
+                        //json[json.length-1][2] = maxPrice
+                        //json[json.length-1][3] = minPrice
+                        //json[json.length-1][4] = closePrice
+
+                        for (let i = 0; i < json.length; i++) {
+                            data.push({
+                                'coin_name': coin_name,
+                                'open': parseFloat(json[i][1]),
+                                'high': parseFloat(json[i][2]),
+                                'low': parseFloat(json[i][3]),
+                                'close': parseFloat(json[i][4]),
+                                'volume': parseFloat(json[i][5]),
+                                'date': new Date(json[i][6]).toLocaleDateString(),
+                                'time': new Date(json[i][6]).toLocaleTimeString(),
+                                'saat': new Date(json[i][6]).getHours()
+                            })
+                        }
+
                     }
-
-                } 
-                else {
-                    // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
-                    durum = true;
-                }   
-            })
+                    else {
+                        // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
+                        durum = true;
+                    }
+                })
 
             if (durum == true) {
                 await bekle(1);
             }
 
         }
-    } 
+    }
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data() hata: " + error)
         return null
@@ -1027,102 +1048,102 @@ async function saat_get_data(coin_name){
     return data
 }
 
-async function saat_calculate_rsi(data){
+async function saat_calculate_rsi(data) {
 
     let rsi_period = 14
 
-    for(let i=1;i<data.length;i++){
-        
-        if(data[i]['close']>data[i-1]['close']){
-            data[i]['upward_movement']=data[i]['close']-data[i-1]['close']
-            
+    for (let i = 1; i < data.length; i++) {
+
+        if (data[i]['close'] > data[i - 1]['close']) {
+            data[i]['upward_movement'] = data[i]['close'] - data[i - 1]['close']
+
         }
-        else{
-            data[i]['upward_movement']=0
+        else {
+            data[i]['upward_movement'] = 0
         }
 
-        if(data[i]['close']<data[i-1]['close']){
-            data[i]['downward_movement']=data[i-1]['close']-data[i]['close']
+        if (data[i]['close'] < data[i - 1]['close']) {
+            data[i]['downward_movement'] = data[i - 1]['close'] - data[i]['close']
         }
-        else{
-            data[i]['downward_movement']=0
+        else {
+            data[i]['downward_movement'] = 0
         }
     }
 
 
-    let sum_upward=0
-    let sum_downward=0
+    let sum_upward = 0
+    let sum_downward = 0
 
-    for(let i=rsi_period;i>0;i--){
+    for (let i = rsi_period; i > 0; i--) {
         sum_upward += data[i]['upward_movement']
         sum_downward += data[i]['downward_movement']
     }
 
-    data[rsi_period]['average_upward_movement']=sum_upward/rsi_period
-    data[rsi_period]['average_downward_movement']=sum_downward/rsi_period
-    data[rsi_period]['relative_strength']=data[rsi_period]['average_upward_movement']/data[rsi_period]['average_downward_movement']
-    data[rsi_period]['rsi']=100-(100/(data[rsi_period]['relative_strength']+1))
+    data[rsi_period]['average_upward_movement'] = sum_upward / rsi_period
+    data[rsi_period]['average_downward_movement'] = sum_downward / rsi_period
+    data[rsi_period]['relative_strength'] = data[rsi_period]['average_upward_movement'] / data[rsi_period]['average_downward_movement']
+    data[rsi_period]['rsi'] = 100 - (100 / (data[rsi_period]['relative_strength'] + 1))
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['average_upward_movement']=((data[i-1]['average_upward_movement']*(rsi_period-1))+data[i]['upward_movement'])/rsi_period
-        data[i]['average_downward_movement']=((data[i-1]['average_downward_movement']*(rsi_period-1))+data[i]['downward_movement'])/rsi_period
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['average_upward_movement'] = ((data[i - 1]['average_upward_movement'] * (rsi_period - 1)) + data[i]['upward_movement']) / rsi_period
+        data[i]['average_downward_movement'] = ((data[i - 1]['average_downward_movement'] * (rsi_period - 1)) + data[i]['downward_movement']) / rsi_period
     }
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['relative_strength']=data[i]['average_upward_movement']/data[i]['average_downward_movement']
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['relative_strength'] = data[i]['average_upward_movement'] / data[i]['average_downward_movement']
     }
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['rsi']=100-(100/(data[i]['relative_strength']+1))
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['rsi'] = 100 - (100 / (data[i]['relative_strength'] + 1))
     }
-    
+
 }
 
-async function saat_calculate_stokastik_rsi(data){
+async function saat_calculate_stokastik_rsi(data) {
     let period = 14
-    for(let i=period*2;i<data.length;i++){
+    for (let i = period * 2; i < data.length; i++) {
         let rsi = []
 
-        for(let j=0;j<period;j++){
-            rsi.push(data[i-j]['rsi'])
+        for (let j = 0; j < period; j++) {
+            rsi.push(data[i - j]['rsi'])
         }
 
         let lowest_rsi = Math.min(...rsi)
         let highest_rsi = Math.max(...rsi)
-        data[i]['stokastik'] = ((data[i]['rsi']-lowest_rsi)/(highest_rsi-lowest_rsi))*100
+        data[i]['stokastik'] = ((data[i]['rsi'] - lowest_rsi) / (highest_rsi - lowest_rsi)) * 100
     }
 
     //stokastik %K altta hesaplanıyor.
-    for(let i=(period*2)+3;i<data.length;i++){
-        let sum=0
-        for(let j=0;j<3;j++){
-            sum += data[i-j]['stokastik']
+    for (let i = (period * 2) + 3; i < data.length; i++) {
+        let sum = 0
+        for (let j = 0; j < 3; j++) {
+            sum += data[i - j]['stokastik']
         }
-        data[i]['stokastik_k'] = sum/3
+        data[i]['stokastik_k'] = sum / 3
     }
 
     //stokastik %D altta hesaplanıyor.
-    for(let i=(period*2)+6;i<data.length;i++){
-        let sum=0
-        for(let j=0;j<3;j++){
-            sum += data[i-j]['stokastik_k']
+    for (let i = (period * 2) + 6; i < data.length; i++) {
+        let sum = 0
+        for (let j = 0; j < 3; j++) {
+            sum += data[i - j]['stokastik_k']
         }
-        data[i]['stokastik_d'] = sum/3
+        data[i]['stokastik_d'] = sum / 3
     }
 }
 
-async function saat_calculate_atr(data){
+async function saat_calculate_atr(data) {
     //atr hesaplama başı
-    let atr=null
-    let atr_period=14
+    let atr = null
+    let atr_period = 14
     let toplam_tr = 0;
     let first_tr = data[0]['high'] - data[0]['low']
     toplam_tr += first_tr;
 
     for (let i = 1; i < atr_period; i++) {
         let tr1 = data[0]['high'] - data[0]['low']
-        let tr2 = Math.abs(data[i]['high'] - data[i-1]['close']);
-        let tr3 = Math.abs(data[i]['low'] - data[i-1]['close'])
+        let tr2 = Math.abs(data[i]['high'] - data[i - 1]['close']);
+        let tr3 = Math.abs(data[i]['low'] - data[i - 1]['close'])
         let max_tr = Math.max(tr1, tr2, tr3);
         toplam_tr += max_tr;
     }
@@ -1131,8 +1152,8 @@ async function saat_calculate_atr(data){
 
     for (let i = atr_period; i < data.length; i++) {
         let tr1 = data[i]['high'] - data[i]['low'];
-        let tr2 = Math.abs(data[i]['high'] - data[i-1]['close']);
-        let tr3 = Math.abs(data[i]['low'] - data[i-1]['close'])
+        let tr2 = Math.abs(data[i]['high'] - data[i - 1]['close']);
+        let tr3 = Math.abs(data[i]['low'] - data[i - 1]['close'])
         let current_atr = Math.max(tr1, tr2, tr3);
 
         atr = ((atr * (atr_period - 1)) + current_atr) / atr_period;
@@ -1142,29 +1163,29 @@ async function saat_calculate_atr(data){
     //atr hesaplama sonu
 }
 
-async function saat_calculate_bollinger_band(data){
+async function saat_calculate_bollinger_band(data) {
     let period = 200;
-    let upper_muptiplier=2;
-    let lower_muptiplier=2;
+    let upper_muptiplier = 2;
+    let lower_muptiplier = 2;
 
-    for(let i=period-1;i<data.length;i++){
-        let sum=0;
-        for(let k=i;k>i-period;k--){
+    for (let i = period - 1; i < data.length; i++) {
+        let sum = 0;
+        for (let k = i; k > i - period; k--) {
             sum += data[k]['close']
         }
-        data[i]['bb_sma'] = sum/period
-        
+        data[i]['bb_sma'] = sum / period
+
 
 
         //farklarının karesini topla
-        let square_sum=0;
-        for(let k=i;k>i-period;k--){
-            square_sum += Math.pow(data[k]['close']-data[i]['bb_sma'],2)
+        let square_sum = 0;
+        for (let k = i; k > i - period; k--) {
+            square_sum += Math.pow(data[k]['close'] - data[i]['bb_sma'], 2)
         }
 
-        data[i]['bb_standart_sapma'] = Math.sqrt(square_sum/(period))
-        data[i]['bb_upper'] = data[i]['bb_sma'] + (data[i]['bb_standart_sapma']*upper_muptiplier)
-        data[i]['bb_lower'] = data[i]['bb_sma'] - (data[i]['bb_standart_sapma']*lower_muptiplier)
+        data[i]['bb_standart_sapma'] = Math.sqrt(square_sum / (period))
+        data[i]['bb_upper'] = data[i]['bb_sma'] + (data[i]['bb_standart_sapma'] * upper_muptiplier)
+        data[i]['bb_lower'] = data[i]['bb_sma'] - (data[i]['bb_standart_sapma'] * lower_muptiplier)
         data[i]['bbw'] = (data[i]['close'] - data[i]['bb_lower']) / (data[i]['bb_upper'] - data[i]['bb_lower'])
         // console.log("lower: " + data[i]['bb_lower'] + " - upper: " + data[i]['bb_upper'])
     }
@@ -1172,56 +1193,56 @@ async function saat_calculate_bollinger_band(data){
 }
 
 
-async function get_data(coin_name){
+async function get_data(coin_name) {
     let data = []
     let durum = true;
 
     try {
 
         while (durum == true) {
-            
-            await binance.futuresCandles(coin_name, "1h", {limit:490})
-            .then(json => {
-                // if (!(json && json.length > 0)){
-                //     console.log(new Date().toLocaleTimeString() + " - hata: " + coin_name + " - json tanımlı değil.")
-                //     durum == false
-                //     return
-                // }
 
-                if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()){
-                    durum = false;
-                    //json[json.length-1][1] = openPrice
-                    //json[json.length-1][2] = maxPrice
-                    //json[json.length-1][3] = minPrice
-                    //json[json.length-1][4] = closePrice
+            await binance.futuresCandles(coin_name, "1h", { limit: 490 })
+                .then(json => {
+                    // if (!(json && json.length > 0)){
+                    //     console.log(new Date().toLocaleTimeString() + " - hata: " + coin_name + " - json tanımlı değil.")
+                    //     durum == false
+                    //     return
+                    // }
 
-                    for(let i=0;i<json.length;i++){
-                        data.push({
-                            'coin_name:': coin_name,
-                            'open': parseFloat(json[i][1]), 
-                            'high': parseFloat(json[i][2]), 
-                            'low': parseFloat(json[i][3]), 
-                            'close': parseFloat(json[i][4]), 
-                            'volume': parseFloat(json[i][5]), 
-                            'date': new Date(json[i][6]).toLocaleDateString(), 
-                            'time': new Date(json[i][6]).toLocaleTimeString(),
-                            'saat': new Date(json[i][6]).getHours()
-                        })
+                    if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
+                        durum = false;
+                        //json[json.length-1][1] = openPrice
+                        //json[json.length-1][2] = maxPrice
+                        //json[json.length-1][3] = minPrice
+                        //json[json.length-1][4] = closePrice
+
+                        for (let i = 0; i < json.length; i++) {
+                            data.push({
+                                'coin_name:': coin_name,
+                                'open': parseFloat(json[i][1]),
+                                'high': parseFloat(json[i][2]),
+                                'low': parseFloat(json[i][3]),
+                                'close': parseFloat(json[i][4]),
+                                'volume': parseFloat(json[i][5]),
+                                'date': new Date(json[i][6]).toLocaleDateString(),
+                                'time': new Date(json[i][6]).toLocaleTimeString(),
+                                'saat': new Date(json[i][6]).getHours()
+                            })
+                        }
+
                     }
-
-                } 
-                else {
-                    // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
-                    durum = true;
-                }   
-            })
+                    else {
+                        // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
+                        durum = true;
+                    }
+                })
 
             if (durum == true) {
                 await bekle(1);
             }
 
         }
-    } 
+    }
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data() hata: " + error)
         return null
@@ -1231,102 +1252,102 @@ async function get_data(coin_name){
     return data
 }
 
-async function calculate_rsi(data){
+async function calculate_rsi(data) {
 
     let rsi_period = 14
 
-    for(let i=1;i<data.length;i++){
-        
-        if(data[i]['close']>data[i-1]['close']){
-            data[i]['upward_movement']=data[i]['close']-data[i-1]['close']
-            
+    for (let i = 1; i < data.length; i++) {
+
+        if (data[i]['close'] > data[i - 1]['close']) {
+            data[i]['upward_movement'] = data[i]['close'] - data[i - 1]['close']
+
         }
-        else{
-            data[i]['upward_movement']=0
+        else {
+            data[i]['upward_movement'] = 0
         }
 
-        if(data[i]['close']<data[i-1]['close']){
-            data[i]['downward_movement']=data[i-1]['close']-data[i]['close']
+        if (data[i]['close'] < data[i - 1]['close']) {
+            data[i]['downward_movement'] = data[i - 1]['close'] - data[i]['close']
         }
-        else{
-            data[i]['downward_movement']=0
+        else {
+            data[i]['downward_movement'] = 0
         }
     }
 
 
-    let sum_upward=0
-    let sum_downward=0
+    let sum_upward = 0
+    let sum_downward = 0
 
-    for(let i=rsi_period;i>0;i--){
+    for (let i = rsi_period; i > 0; i--) {
         sum_upward += data[i]['upward_movement']
         sum_downward += data[i]['downward_movement']
     }
 
-    data[rsi_period]['average_upward_movement']=sum_upward/rsi_period
-    data[rsi_period]['average_downward_movement']=sum_downward/rsi_period
-    data[rsi_period]['relative_strength']=data[rsi_period]['average_upward_movement']/data[rsi_period]['average_downward_movement']
-    data[rsi_period]['rsi']=100-(100/(data[rsi_period]['relative_strength']+1))
+    data[rsi_period]['average_upward_movement'] = sum_upward / rsi_period
+    data[rsi_period]['average_downward_movement'] = sum_downward / rsi_period
+    data[rsi_period]['relative_strength'] = data[rsi_period]['average_upward_movement'] / data[rsi_period]['average_downward_movement']
+    data[rsi_period]['rsi'] = 100 - (100 / (data[rsi_period]['relative_strength'] + 1))
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['average_upward_movement']=((data[i-1]['average_upward_movement']*(rsi_period-1))+data[i]['upward_movement'])/rsi_period
-        data[i]['average_downward_movement']=((data[i-1]['average_downward_movement']*(rsi_period-1))+data[i]['downward_movement'])/rsi_period
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['average_upward_movement'] = ((data[i - 1]['average_upward_movement'] * (rsi_period - 1)) + data[i]['upward_movement']) / rsi_period
+        data[i]['average_downward_movement'] = ((data[i - 1]['average_downward_movement'] * (rsi_period - 1)) + data[i]['downward_movement']) / rsi_period
     }
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['relative_strength']=data[i]['average_upward_movement']/data[i]['average_downward_movement']
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['relative_strength'] = data[i]['average_upward_movement'] / data[i]['average_downward_movement']
     }
 
-    for(let i=rsi_period+1;i<data.length;i++){
-        data[i]['rsi']=100-(100/(data[i]['relative_strength']+1))
+    for (let i = rsi_period + 1; i < data.length; i++) {
+        data[i]['rsi'] = 100 - (100 / (data[i]['relative_strength'] + 1))
     }
-    
+
 }
 
-async function calculate_stokastik_rsi(data){
+async function calculate_stokastik_rsi(data) {
     let period = 14
-    for(let i=period*2;i<data.length;i++){
+    for (let i = period * 2; i < data.length; i++) {
         let rsi = []
 
-        for(let j=0;j<period;j++){
-            rsi.push(data[i-j]['rsi'])
+        for (let j = 0; j < period; j++) {
+            rsi.push(data[i - j]['rsi'])
         }
 
         let lowest_rsi = Math.min(...rsi)
         let highest_rsi = Math.max(...rsi)
-        data[i]['stokastik'] = ((data[i]['rsi']-lowest_rsi)/(highest_rsi-lowest_rsi))*100
+        data[i]['stokastik'] = ((data[i]['rsi'] - lowest_rsi) / (highest_rsi - lowest_rsi)) * 100
     }
 
     //stokastik %K altta hesaplanıyor.
-    for(let i=(period*2)+3;i<data.length;i++){
-        let sum=0
-        for(let j=0;j<3;j++){
-            sum += data[i-j]['stokastik']
+    for (let i = (period * 2) + 3; i < data.length; i++) {
+        let sum = 0
+        for (let j = 0; j < 3; j++) {
+            sum += data[i - j]['stokastik']
         }
-        data[i]['stokastik_k'] = sum/3
+        data[i]['stokastik_k'] = sum / 3
     }
 
     //stokastik %D altta hesaplanıyor.
-    for(let i=(period*2)+6;i<data.length;i++){
-        let sum=0
-        for(let j=0;j<3;j++){
-            sum += data[i-j]['stokastik_k']
+    for (let i = (period * 2) + 6; i < data.length; i++) {
+        let sum = 0
+        for (let j = 0; j < 3; j++) {
+            sum += data[i - j]['stokastik_k']
         }
-        data[i]['stokastik_d'] = sum/3
+        data[i]['stokastik_d'] = sum / 3
     }
 }
 
-async function calculate_atr(data){
+async function calculate_atr(data) {
     //atr hesaplama başı
-    let atr=null
-    let atr_period=14
+    let atr = null
+    let atr_period = 14
     let toplam_tr = 0;
     let first_tr = data[0]['high'] - data[0]['low']
     toplam_tr += first_tr;
 
     for (let i = 1; i < atr_period; i++) {
         let tr1 = data[0]['high'] - data[0]['low']
-        let tr2 = Math.abs(data[i]['high'] - data[i-1]['close']);
-        let tr3 = Math.abs(data[i]['low'] - data[i-1]['close'])
+        let tr2 = Math.abs(data[i]['high'] - data[i - 1]['close']);
+        let tr3 = Math.abs(data[i]['low'] - data[i - 1]['close'])
         let max_tr = Math.max(tr1, tr2, tr3);
         toplam_tr += max_tr;
     }
@@ -1335,8 +1356,8 @@ async function calculate_atr(data){
 
     for (let i = atr_period; i < data.length; i++) {
         let tr1 = data[i]['high'] - data[i]['low'];
-        let tr2 = Math.abs(data[i]['high'] - data[i-1]['close']);
-        let tr3 = Math.abs(data[i]['low'] - data[i-1]['close'])
+        let tr2 = Math.abs(data[i]['high'] - data[i - 1]['close']);
+        let tr3 = Math.abs(data[i]['low'] - data[i - 1]['close'])
         let current_atr = Math.max(tr1, tr2, tr3);
 
         atr = ((atr * (atr_period - 1)) + current_atr) / atr_period;
@@ -1409,29 +1430,29 @@ async function get_stepSize(coin_name) {
 
 
 
-async function saatlik_takip(coin_name){
+async function saatlik_takip(coin_name) {
 
     while (true) {
         await bekle_60dk();
         let bekleyen_coinler = await get_bekleyen_list("saatlik_takip()")
         if (bekleyen_coinler.includes(coin_name)) { //satılmayı bekleyen coinler arasında bu coin VARSA;
-            
+
             let data = await saat_calculate_indicators(coin_name);
             if (data === null || typeof data === 'undefined' || data.length == 0) {
                 console.log(new Date().toLocaleTimeString() + " - saatlik_takip() - " + coin_name + " - data yok")
-                continue   
+                continue
             }
 
             let btc_data = await saat_calculate_indicators("BTCUSDT");
-            let btc_rsi = btc_data[btc_data.length-2]['rsi']
+            let btc_rsi = btc_data[btc_data.length - 2]['rsi']
 
             let entryPrice = await get_entryPrice(coin_name);
-            let rsi = data[data.length-2]['rsi']
-            let closePrice = data[data.length-2]['close']
-            let degisim = (closePrice-entryPrice)/entryPrice*100;
+            let rsi = data[data.length - 2]['rsi']
+            let closePrice = data[data.length - 2]['close']
+            let degisim = (closePrice - entryPrice) / entryPrice * 100;
             // let breakEvenPrice = await get_breakEvenPrice(coin_name)
-            
-            if( rsi>67 || /*(rsi>60 && btc_rsi>70 && degisim>0) || */degisim>2 ){
+
+            if (rsi > 67 || /*(rsi>60 && btc_rsi>70 && degisim>0) || */degisim > 2) {
                 await long_marketSell_order(coin_name);
                 await cancel_all_orders(coin_name);
                 console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - saatlik_takip(), rsi satışı yapıldı. RSI: " + rsi.toFixed(2) + " - btc_rsi: " + btc_rsi.toFixed(2) + " - Değişim: " + degisim.toFixed(2));
@@ -1439,7 +1460,7 @@ async function saatlik_takip(coin_name){
                 alinabilir_max_coin_sayisi++
                 return
             }
-            else{
+            else {
                 console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - saatlik takip raporu, RSI: " + rsi.toFixed(2) + " - btc_rsi: " + btc_rsi.toFixed(2) + " - degisim: " + degisim.toFixed(2))
             }
 
@@ -1447,33 +1468,33 @@ async function saatlik_takip(coin_name){
                 send_mail_cuneyt(new Date().toLocaleTimeString() + " - RSI>67 SINYAL - " + coin_name, "RSI: " + rsi.toFixed(2))
                 open('D:\\horoz_alarm.mp4');
             }*/
-            
+
         }
-        else{
+        else {
             await cancel_all_orders(coin_name);
             console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - saatlik_takip() - Bu coine ait açık pozisyon yok. Bot sonlandırıldı.");
             await bekle(10)
             alinabilir_max_coin_sayisi++
             return
         }
-        
+
     }
 
 }
 
 
-async function long_marketBuy(coin_name, lastPrice){
+async function long_marketBuy(coin_name, lastPrice) {
     let stepSize = await find_stepSize_quantity(coin_name);
     await binance.futuresLeverage(coin_name, leverage).catch(err => console.log(new Date().toLocaleTimeString() + " -42err- " + err)); //kaldıraç
     // await binance.futuresMarginType(coin_name, 'ISOLATED').catch(err => console.log(new Date().toLocaleTimeString() + " -41err- " + err));
     await binance.futuresMarginType(coin_name, 'CROSSED')/*.then(json => console.log(json))*/.catch(err => console.log(new Date().toLocaleTimeString() + " -41err- " + err));
-    
-    
+
+
     var y = amount * leverage / lastPrice
     var quantity = parseFloat(y.toFixed(stepSize))
 
     let json = await binance.futuresMarketBuy(coin_name, quantity)
-    .catch(err => console.log(new Date().toLocaleTimeString() + ' - long_marketBuy() içindeki futuresMarketBuy request hatası: ' + err))
+        .catch(err => console.log(new Date().toLocaleTimeString() + ' - long_marketBuy() içindeki futuresMarketBuy request hatası: ' + err))
 
     if (json.status == 'NEW' || json.status == "FILLED") { //futuresMarketBuy işlemi başarılı
         console.log(new Date().toLocaleTimeString() + ' - ' + (++buy_count) + ' - ' + coin_name + ', LONG MARKET BUY ORDER gerçekleşti.');
@@ -1492,30 +1513,30 @@ async function long_marketBuy(coin_name, lastPrice){
     return json;
 }
 
-async function mail_olustur(side, bb, json){
+async function mail_olustur(side, bb, json) {
     await bekle(50);
     let btc_data = await btc_rsi();
     //let btc_adx = await calculate_adx("BTCUSDT");
     //let hacim = await get_volume(bb.coin_name);
-    let adx_diff = bb.adx_2-bb.adx;
+    let adx_diff = bb.adx_2 - bb.adx;
     let rsi_diff = Math.abs(bb.rsi - bb.rsi_2);
 
-    if(side == "short"){
+    if (side == "short") {
         let konu = new Date().toLocaleTimeString() + " +1h CÜNEYT+ " + bb.coin_name + " + RSI SHORT";
         let mesaj = "RSI: " + parseFloat(bb.rsi).toFixed(2) + "\nATR DEĞİŞİM: " + bb.atr_degisim.toFixed(2) + "\nADX: " + parseFloat(bb.adx).toFixed(2) + "\nADX_2: " + parseFloat(bb.adx_2).toFixed(2) + "\nDegisim(%): " + parseFloat(bb.degisim).toFixed(2) + "\nStokastik %K: " + parseFloat(bb.stokastik_rsi).toFixed(2) + " \nSondan 2. Stokastik %K: " + parseFloat(bb.stokastik_rsi_2).toFixed(2) + " \nBB%B: " + bb.bb_yuzde.toFixed(2) + "\nMFI: " + bb.mfi + "\nWilliams %R: " + bb.williams_r + "\nBTC RSI 1m: " + btc_data[0].rsi + "\nBTC RSI 15m: " + btc_data[1].rsi + "\nBTC RSI 1h: " + btc_data[2].rsi + "\nSMA(200): " + bb.sma + "\nlastPrice: " + bb.closePrice;
         send_mail_cuneyt(konu, mesaj);
     }
-    else if(side == "long"){
+    else if (side == "long") {
         let konu = new Date().toLocaleTimeString() + " +1h CÜNEYT+ " + bb.coin_name + " + RSI LONG";
         let mesaj = "RSI: " + parseFloat(bb.rsi).toFixed(2) + "\nATR DEĞİŞİM: " + bb.atr_degisim.toFixed(2) + "\nADX: " + parseFloat(bb.adx).toFixed(2) + "\nADX_2: " + parseFloat(bb.adx_2).toFixed(2) + "\nDegisim(%): " + parseFloat(bb.degisim).toFixed(2) + "\nStokastik %K: " + parseFloat(bb.stokastik_rsi).toFixed(2) + " \nSondan 2. Stokastik %K: " + parseFloat(bb.stokastik_rsi_2).toFixed(2) + " \nBB%B: " + bb.bb_yuzde.toFixed(2) + "\nMFI: " + bb.mfi + "\nWilliams %R: " + bb.williams_r + "\nBTC RSI 1m: " + btc_data[0].rsi + "\nBTC RSI 15m: " + btc_data[1].rsi + "\nBTC RSI 1h: " + btc_data[2].rsi + "\nSMA(200): " + bb.sma + "\nlastPrice: " + bb.closePrice;
         send_mail_cuneyt(konu, mesaj);
     }
-    else{
+    else {
         console.log(new Date().toLocaleTimeString() + " hatalı side gönderildi: " + side)
     }
 }
 
-async function get_volume(coin_name){ //ortalama hacim koşulu koymak için kullanılacak. 10.07.2023
+async function get_volume(coin_name) { //ortalama hacim koşulu koymak için kullanılacak. 10.07.2023
     let sum_volume_3day = 0;
     let sum_volume_10day = 0;
     let sum_volume_30day = 0;
@@ -1524,30 +1545,30 @@ async function get_volume(coin_name){ //ortalama hacim koşulu koymak için kull
     let average_volume_30day = null;
 
     await binance.futuresCandles(coin_name, "1d")
-    .then(json => {
+        .then(json => {
 
-        //sinyal geldiği mumu hesaba katmıyoruz. 3 günlük hacim ortalması
-        for(let i=json.length-1-3; i<json.length-1; i++){
-            sum_volume_3day += parseFloat(json[i][7]);
-        }
-        average_volume_3day = sum_volume_3day/3;
+            //sinyal geldiği mumu hesaba katmıyoruz. 3 günlük hacim ortalması
+            for (let i = json.length - 1 - 3; i < json.length - 1; i++) {
+                sum_volume_3day += parseFloat(json[i][7]);
+            }
+            average_volume_3day = sum_volume_3day / 3;
 
-        //sinyal geldiği mumu hesaba katmıyoruz. 10 günlük hacim ortalması
-        for(let i=json.length-1-10; i<json.length-1; i++){
-            sum_volume_10day += parseFloat(json[i][7]);
-        }
-        average_volume_10day = sum_volume_10day/10;
+            //sinyal geldiği mumu hesaba katmıyoruz. 10 günlük hacim ortalması
+            for (let i = json.length - 1 - 10; i < json.length - 1; i++) {
+                sum_volume_10day += parseFloat(json[i][7]);
+            }
+            average_volume_10day = sum_volume_10day / 10;
 
 
-        //sinyal geldiği mumu hesaba katmıyoruz. 30 günlük hacim ortalması
-        for(let i=json.length-1-30; i<json.length-1; i++){
-            sum_volume_30day += parseFloat(json[i][7]);
-        }
-        average_volume_30day = sum_volume_30day/30;
+            //sinyal geldiği mumu hesaba katmıyoruz. 30 günlük hacim ortalması
+            for (let i = json.length - 1 - 30; i < json.length - 1; i++) {
+                sum_volume_30day += parseFloat(json[i][7]);
+            }
+            average_volume_30day = sum_volume_30day / 30;
 
-    }).catch(err => console.log(coin_name + " - get_volume() HATA: " + err))
+        }).catch(err => console.log(coin_name + " - get_volume() HATA: " + err))
 
-    return{
+    return {
         'ort_3gun': average_volume_3day,
         'ort_10gun': average_volume_10day,
         'ort_30gun': average_volume_30day,
@@ -1556,7 +1577,7 @@ async function get_volume(coin_name){ //ortalama hacim koşulu koymak için kull
     }
 }
 
-async function satildi_mi_takip(coin_name){
+async function satildi_mi_takip(coin_name) {
     while (true) {
         let bekleyen_coinler = await get_bekleyen_list("satildi_mi_takip fonksiyonu");
         if (!bekleyen_coinler.includes(coin_name)) {
@@ -1565,7 +1586,7 @@ async function satildi_mi_takip(coin_name){
             await cancel_all_orders(coin_name);
             return;
         }
-        else{
+        else {
             await bekle(35);
         }
     }
@@ -1783,16 +1804,16 @@ async function entryPrice_likitPrice_distance(coin_name) {
     console.log(new Date().toLocaleTimeString() + " - likitPrice noktasına yaklaştığında ortalama düşürmek için alım yapıldı. " + coin_name + " - entryPrice ile likitPrice arasındaki uzaklık(%): " + distance);
 }
 
-async function get_position_leverage(coin_name){ //istenen coin için aktif kaldıraç değerini döndürür.
+async function get_position_leverage(coin_name) { //istenen coin için aktif kaldıraç değerini döndürür.
 
     let aktif_kaldirac = await binance.futuresPositionRisk()
-    .then(json => {
-        for (let i = 0; i < json.length; i++) {
-            if (json[i].symbol == coin_name) {
-                return json[i].leverage;
+        .then(json => {
+            for (let i = 0; i < json.length; i++) {
+                if (json[i].symbol == coin_name) {
+                    return json[i].leverage;
+                }
             }
-        }
-    })
+        })
 
     return aktif_kaldirac;
 }
@@ -1804,7 +1825,7 @@ async function get_bekleyen_list(nereden_cagrildi) {
     try {
         // Binance API çağrısı
         let json = await binance.futuresPositionRisk()
-    
+
         // Gelen veriyi işleme
         if (json && json.length > 0) {
             for (let i = 0; i < json.length; i++) {
@@ -1830,21 +1851,21 @@ async function yeni_get_bekleyen_list(coin_name, nereden_cagrildi) {
     let bekleyen_coinler = [];
 
     await binance.futuresPositionRisk({ symbol: coin_name })
-    .then(json => {
-        if (json.code == -1003) {
-            let ban_time = new Date(parseInt(json.msg.split(". ")[0].split(" ")[7])).toLocaleTimeString();
-            console.log(json.msg)
-            console.log(new Date().toLocaleTimeString() + " - get_bekleyen_list() futuresPositionRisk request hatası verdi. ban kaldırılma zamanı: " + ban_time);
-            console.log(new Date().toLocaleTimeString() + " - HATAYA SEBEP OLAN YER => " + nereden_cagrildi)
-            hata_maili_gonder(json.msg);
-        }
-
-        for (let i = 0; i < json.length; i++) {
-            if (json[i].positionAmt != 0) {
-                bekleyen_coinler.push(json[i].symbol)
+        .then(json => {
+            if (json.code == -1003) {
+                let ban_time = new Date(parseInt(json.msg.split(". ")[0].split(" ")[7])).toLocaleTimeString();
+                console.log(json.msg)
+                console.log(new Date().toLocaleTimeString() + " - get_bekleyen_list() futuresPositionRisk request hatası verdi. ban kaldırılma zamanı: " + ban_time);
+                console.log(new Date().toLocaleTimeString() + " - HATAYA SEBEP OLAN YER => " + nereden_cagrildi)
+                hata_maili_gonder(json.msg);
             }
-        }
-    })
+
+            for (let i = 0; i < json.length; i++) {
+                if (json[i].positionAmt != 0) {
+                    bekleyen_coinler.push(json[i].symbol)
+                }
+            }
+        })
 
     return bekleyen_coinler;
 }
@@ -1903,20 +1924,20 @@ async function get_lastPrice(coin_name) {
     while (durum == true) {
 
         await binance.futuresCandles(coin_name, "1h")
-        .then(json => {
-            //json[json.length-1][1] = openPrice
-            //json[json.length-1][2] = maxPrice
-            //json[json.length-1][3] = minPrice
-            //json[json.length-1][4] = closePrice
+            .then(json => {
+                //json[json.length-1][1] = openPrice
+                //json[json.length-1][2] = maxPrice
+                //json[json.length-1][3] = minPrice
+                //json[json.length-1][4] = closePrice
 
-            //yeni mum aktif ise önceki mumun kapanış fiyatını alıyoruz.
-            if(new Date(json[json.length - 1][6]).getHours() == new Date().getHours() && new Date(json[json.length - 1][6]).getMinutes() == (new Date().getMinutes() + 59)){
-                durum = false;
-                lastPrice = parseFloat(json[json.length - 2][4]);
-            }
+                //yeni mum aktif ise önceki mumun kapanış fiyatını alıyoruz.
+                if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours() && new Date(json[json.length - 1][6]).getMinutes() == (new Date().getMinutes() + 59)) {
+                    durum = false;
+                    lastPrice = parseFloat(json[json.length - 2][4]);
+                }
 
-        })
-        .catch(err => console.log(new Date().toLocaleTimeString() + " -7err- " + err));
+            })
+            .catch(err => console.log(new Date().toLocaleTimeString() + " -7err- " + err));
 
     }
 
@@ -2055,7 +2076,7 @@ async function yeniden_baslat_60dk() {
     let kalan_sn = 60 - new Date().getSeconds()
     //console.log(new Date().toLocaleTimeString() + " - Program, " + kalan_dk + "dk - "+kalan_sn+"sn sonra başlayacak.")
 
-    let minute = (kalan_dk-15) * 1000 * 60;
+    let minute = (kalan_dk - 15) * 1000 * 60;
     let second = kalan_sn * 1000;
 
     let waitFor = delay => new Promise(resolve => setTimeout(resolve, delay));
@@ -2070,35 +2091,35 @@ async function bekle_60sn() {
     await waitFor(second);
 }
 
-async function long_kademeli_alim_emri_olustur(coin_name,quantity,buyPrice){ //%10 düştüğünde kademeli alım yapabilmek için limit emri oluşturan fonksiyon.
+async function long_kademeli_alim_emri_olustur(coin_name, quantity, buyPrice) { //%10 düştüğünde kademeli alım yapabilmek için limit emri oluşturan fonksiyon.
     let tickSize = await find_tickSize_price(coin_name);
-    
+
     await binance.futuresBuy(coin_name, quantity, parseFloat(buyPrice).toFixed(tickSize))
-    .then(json => {
+        .then(json => {
 
-        if (json.status == 'NEW') { //long limit satış emri başarıyla oluşturuldu.
-            console.log(new Date().toLocaleTimeString() + ' - Kademeli limit emri oluşturma BAŞARILI: ' + coin_name + " - buyPrice: " + buyPrice + " - quantity: " + quantity);
-        }
-        else if (json.code < 0) { //long limit satış emri oluşturulamadı.
-            console.log(new Date().toLocaleTimeString() + " - Kademeli limit emri oluşturma BAŞARISIZ: " + coin_name + " - buyPrice: " + buyPrice + " - quantity: " + quantity);
-            console.log(json)
-        }
+            if (json.status == 'NEW') { //long limit satış emri başarıyla oluşturuldu.
+                console.log(new Date().toLocaleTimeString() + ' - Kademeli limit emri oluşturma BAŞARILI: ' + coin_name + " - buyPrice: " + buyPrice + " - quantity: " + quantity);
+            }
+            else if (json.code < 0) { //long limit satış emri oluşturulamadı.
+                console.log(new Date().toLocaleTimeString() + " - Kademeli limit emri oluşturma BAŞARISIZ: " + coin_name + " - buyPrice: " + buyPrice + " - quantity: " + quantity);
+                console.log(json)
+            }
 
-    })
-    .catch(err => console.log(new Date().toLocaleTimeString() + " -10err- " + err));
+        })
+        .catch(err => console.log(new Date().toLocaleTimeString() + " -10err- " + err));
 }
 
-async function long_sell_order(coin_name, entryPrice, quantity){
+async function long_sell_order(coin_name, entryPrice, quantity) {
 
     let tickSize = await find_tickSize_price(coin_name);
     let takeProfit = (entryPrice * (1 + profit_rate)).toFixed(tickSize)
 
     //TAKE PROFIT ORDER veriyoruz.
     const order = await binance.futuresSell(coin_name, quantity, takeProfit, { reduceOnly: true })
-    
+
     if (order.status === 'NEW') {
         console.log(new Date().toLocaleTimeString() + ' - ' + coin_name + ', ' + takeProfit + " fiyatından LONG SELL ORDER (takeProfit) oluşturuldu. long_sell_order() Quantity: " + quantity);
-        tp_order_id_list.push({"order_id":order.orderId, "tp_price":takeProfit, "price":entryPrice})
+        tp_order_id_list.push({ "order_id": order.orderId, "tp_price": takeProfit, "price": entryPrice })
     }
     else if (order.code < 0) {
         //long_sell_order(coin_name, takeProfit, quantity) //%1 tp oluşturma başarısız olursa %2 tp emri koymayı deneyecek.
@@ -2119,7 +2140,7 @@ async function long_marketSell(coin_name, quantity) { //anlık fiyatı çekip ma
             if (json.code < 0) { //futuresMarketSell işlemi başarısız
                 console.log(new Date().toLocaleTimeString() + " - " + coin_name + ", LONG MARKET SELL HATASI:  => " + json.msg);
             }
-            else{
+            else {
                 console.log(new Date().toLocaleTimeString() + " - LONG Market SELL... Satılan Quantity: " + quantity);
             }
 
@@ -2137,18 +2158,18 @@ async function short_sell_order(coin_name) {
 
     //TAKE PROFIT değerini giriyoruz.
     await binance.futuresBuy(coin_name, quantity, takeProfit.toFixed(tickSize), { reduceOnly: true })
-    .then((json) => {
+        .then((json) => {
 
-        if (json.status == 'NEW') { //futuresBuy işlemi başarılı 
-            console.log(new Date().toLocaleTimeString() + ' - ' + coin_name + ', ' + takeProfit.toFixed(tickSize) + " fiyatından SHORT SELL ORDER(takeProfit) oluşturuldu.");
-        }
-        else if (json.code < 0) { //futuresBuy işlemi başarısız
-            console.log(new Date().toLocaleTimeString() + " - " + coin_name + ", short_sell_order() işlemi yaparken HATA verdi => " + json.msg + " - quantity: " + quantity + " - entryPrice: " + entryPrice + " - takeProfit: " + takeProfit.toFixed(tickSize));
-            console.log(json)
-        }
+            if (json.status == 'NEW') { //futuresBuy işlemi başarılı 
+                console.log(new Date().toLocaleTimeString() + ' - ' + coin_name + ', ' + takeProfit.toFixed(tickSize) + " fiyatından SHORT SELL ORDER(takeProfit) oluşturuldu.");
+            }
+            else if (json.code < 0) { //futuresBuy işlemi başarısız
+                console.log(new Date().toLocaleTimeString() + " - " + coin_name + ", short_sell_order() işlemi yaparken HATA verdi => " + json.msg + " - quantity: " + quantity + " - entryPrice: " + entryPrice + " - takeProfit: " + takeProfit.toFixed(tickSize));
+                console.log(json)
+            }
 
-    })
-    .catch(err => console.log(new Date().toLocaleTimeString() + " -12err- " + err));
+        })
+        .catch(err => console.log(new Date().toLocaleTimeString() + " -12err- " + err));
 
 
 
@@ -2266,7 +2287,7 @@ async function get_entryPrice(coin_name) {
     let entryPrice = null;
     let counter = 0;
 
-    while (counter<10) {
+    while (counter < 10) {
         entryPrice = await binance.futuresPositionRisk({ symbol: coin_name })
             .then(json => parseFloat(json[0].entryPrice));
 
@@ -2304,9 +2325,9 @@ async function get_leverage(coin_name) {
 
 async function max_leverage(coin_name) {
     let max_lev = await binance.futuresLeverageBracket(coin_name)
-        .then(json =>json[0]["brackets"][0].initialLeverage)
+        .then(json => json[0]["brackets"][0].initialLeverage)
         .catch((err) => console.log("max_leverage() hata: " + coin_name + " - " + err))
-    
+
     return max_lev;
 }
 
@@ -2336,12 +2357,12 @@ async function set_leverage(coin_name, new_leverage) {
 
 
 //bot başladığında kademeli alım sayısına göre aşağıya limit buy emirleri hızlıca async await kullanmadan hızlıca oluşturmak için bu fonksiyonu oluşturdum. 16.11.2024
-async function limit_buy_emri_with_profit_rate(coin_name, price, kar_orani){ //parametre ile verilen profit_rate=kar_orani'na göre aşağıya limit buy emri oluşturmak için kullanılacak fonksiyon.
+async function limit_buy_emri_with_profit_rate(coin_name, price, kar_orani) { //parametre ile verilen profit_rate=kar_orani'na göre aşağıya limit buy emri oluşturmak için kullanılacak fonksiyon.
     try {
-        
+
         let tickSize = await find_tickSize_price(coin_name);
         let stepSize = await find_stepSize_quantity(coin_name);
-        let limit_price = (price*(1-kar_orani)).toFixed(tickSize)
+        let limit_price = (price * (1 - kar_orani)).toFixed(tickSize)
 
         var y = amount * leverage / limit_price
         var quantity = parseFloat(y.toFixed(stepSize))
@@ -2352,7 +2373,7 @@ async function limit_buy_emri_with_profit_rate(coin_name, price, kar_orani){ //p
         // Emrin gerçekleşip gerçekleşmediğini kontrol et
         if (limitOrder && limitOrder.orderId) {
             // console.log(coin_name + ' - Limit emri oluşturuldu: ' + limit_price);
-            buy_order_id_list.push({"order_id":limitOrder.orderId, "buy_price":limit_price, "buy_quantity":quantity})
+            buy_order_id_list.push({ "order_id": limitOrder.orderId, "buy_price": limit_price, "buy_quantity": quantity })
         }
         else {
             // open('D:\\horoz_alarm.mp4');
@@ -2372,7 +2393,7 @@ async function limit_buy_emri_with_profit_rate(coin_name, price, kar_orani){ //p
 
 async function direkt_limit_buy_emri(coin_name, limit_price) {
     try {
-        
+
         let tickSize = await find_tickSize_price(coin_name);
         let stepSize = await find_stepSize_quantity(coin_name);
         limit_price = limit_price.toFixed(tickSize)
@@ -2386,7 +2407,7 @@ async function direkt_limit_buy_emri(coin_name, limit_price) {
         // Emrin gerçekleşip gerçekleşmediğini kontrol et
         if (limitOrder && limitOrder.orderId) {
             console.log(coin_name + ' - ESKİ LİMİT BUY EMRİ TEKRAR OLUŞTURULDU: ' + limit_price + " - order_status: " + limitOrder.status);
-            buy_order_id_list.push({"order_id":limitOrder.orderId, "buy_price":limit_price, "buy_quantity":quantity})
+            buy_order_id_list.push({ "order_id": limitOrder.orderId, "buy_price": limit_price, "buy_quantity": quantity })
         }
         else {
 
@@ -2397,7 +2418,7 @@ async function direkt_limit_buy_emri(coin_name, limit_price) {
 
         }
 
-        
+
 
     } catch (error) {
         console.error('Error placing orders:', error.body || error);
@@ -2406,10 +2427,10 @@ async function direkt_limit_buy_emri(coin_name, limit_price) {
 
 async function limit_buy_emri(coin_name, price) {
     try {
-        
+
         let tickSize = await find_tickSize_price(coin_name);
         let stepSize = await find_stepSize_quantity(coin_name);
-        let limit_price = (price*(1-profit_rate)).toFixed(tickSize)
+        let limit_price = (price * (1 - profit_rate)).toFixed(tickSize)
 
         // console.log()
         // console.log(new Date().toLocaleTimeString() + " YENİ LİMİT BUY EMRİ OLUŞTURULACAK. - price: " + price + " - limit_price: " + limit_price)
@@ -2418,9 +2439,9 @@ async function limit_buy_emri(coin_name, price) {
         var quantity = parseFloat(y.toFixed(stepSize))
 
         //aynı limit emri fiyatı array'de varsa tekrar limit emir oluşturulmayacak. fonksiyonu sonlandır.
-        for(let i=0;i<buy_order_id_list.length;i++){
+        for (let i = 0; i < buy_order_id_list.length; i++) {
             //limit price * 1.002 ile limit price * 0.998 arasında ise çok yakın fiyata daha önce limit emir koyulmuş demektir. Tekrar limit buy emri oluşturulmayacak.
-            if(buy_order_id_list[i].buy_price > limit_price*0.998 && buy_order_id_list[i].buy_price < limit_price*1.002){
+            if (buy_order_id_list[i].buy_price > limit_price * 0.998 && buy_order_id_list[i].buy_price < limit_price * 1.002) {
                 // console.log(new Date().toLocaleTimeString() + " - aynı limit emirden daha önce oluşturulduğu için " + limit_price + " fiyatına tekrar limit buy emri oluşturulmayacak. alt_limit: " + limit_price*0.998 + " - ust_limit: " + limit_price*1.002)
                 // console.log(buy_order_id_list)
                 return;
@@ -2436,7 +2457,7 @@ async function limit_buy_emri(coin_name, price) {
         // Emrin gerçekleşip gerçekleşmediğini kontrol et
         if (limitOrder && limitOrder.orderId) {
             console.log(coin_name + ' - Limit emri oluşturuldu: ' + limit_price);
-            buy_order_id_list.push({"order_id":limitOrder.orderId, "buy_price":limit_price, "buy_quantity":quantity})
+            buy_order_id_list.push({ "order_id": limitOrder.orderId, "buy_price": limit_price, "buy_quantity": quantity })
         }
         else {
             open('D:\\horoz_alarm.mp4');
@@ -2448,7 +2469,7 @@ async function limit_buy_emri(coin_name, price) {
 
         }
 
-        
+
 
     } catch (error) {
         console.error('Error placing orders:', error.body || error);
@@ -2466,8 +2487,8 @@ async function short_buy_oco_order(coin_name, atr) { //short market buy
     let stepSize = await find_stepSize_quantity(coin_name);
     // let stepSize = await get_stepSize(coin_name);
     let lastPrice = await binance.futuresCandles(coin_name, "1d", { limit: 10 }).then(json => parseFloat(json[json.length - 1][4])).catch(err => console.log(new Date().toLocaleTimeString() + " -44err- " + err));
-    
-    
+
+
 
     await binance.futuresLeverage(coin_name, leverage).catch(err => console.log(new Date().toLocaleTimeString() + " -42err- " + err)); //kaldıraç
     await binance.futuresMarginType(coin_name, 'ISOLATED').catch(err => console.log(new Date().toLocaleTimeString() + " -41err- " + err));
@@ -2478,23 +2499,23 @@ async function short_buy_oco_order(coin_name, atr) { //short market buy
     var quantity = parseFloat(y.toFixed(stepSize))
 
     await binance.futuresMarketSell(coin_name, quantity)
-    .then((json) => {
+        .then((json) => {
 
-        if (json.status == 'NEW') { //futuresMarketBuy işlemi başarılı 
-            console.log(new Date().toLocaleTimeString() + ' - ' + (++buy_count) + ' - ' + coin_name + ', ' + lastPrice + ' fiyatından SHORT Market BUY ORDER verildi.');
-            cancelOrder_and_reOpenOrder(coin_name, "short", atr);
-        }
-        else if (json.code < 0) { //futuresMarketBuy işlemi başarısız
-            console.log(new Date().toLocaleTimeString() + " - " + coin_name + ", futuresMarketSell() işlemi yaparken HATA verdi => " + json.msg);
-        }
+            if (json.status == 'NEW') { //futuresMarketBuy işlemi başarılı 
+                console.log(new Date().toLocaleTimeString() + ' - ' + (++buy_count) + ' - ' + coin_name + ', ' + lastPrice + ' fiyatından SHORT Market BUY ORDER verildi.');
+                cancelOrder_and_reOpenOrder(coin_name, "short", atr);
+            }
+            else if (json.code < 0) { //futuresMarketBuy işlemi başarısız
+                console.log(new Date().toLocaleTimeString() + " - " + coin_name + ", futuresMarketSell() işlemi yaparken HATA verdi => " + json.msg);
+            }
 
-    })
-    .catch(err => console.log(new Date().toLocaleTimeString() + ' - short_buy_oco_order() içindeki futuresMarketBuy request hatası: ' + err))
+        })
+        .catch(err => console.log(new Date().toLocaleTimeString() + ' - short_buy_oco_order() içindeki futuresMarketBuy request hatası: ' + err))
 
     return {
-        'coin_name':coin_name,
-        'quantity':quantity,
-        'amount':amount.toFixed(2),
+        'coin_name': coin_name,
+        'quantity': quantity,
+        'amount': amount.toFixed(2),
     }
 }
 
@@ -2503,13 +2524,13 @@ async function get_quantity(coin_name) {
     await bekle(5);
 
     let quantity = await binance.futuresAccount()
-    .then(json => {
-        for (let i = 0; i < json.positions.length; i++) {
-            if (json.positions[i].symbol == coin_name) {
-                return Math.abs(json.positions[i].positionAmt);
+        .then(json => {
+            for (let i = 0; i < json.positions.length; i++) {
+                if (json.positions[i].symbol == coin_name) {
+                    return Math.abs(json.positions[i].positionAmt);
+                }
             }
-        }
-    }).catch(err => console.log("get_quantity() HATA: " + err))
+        }).catch(err => console.log("get_quantity() HATA: " + err))
 
     return quantity;
 }
@@ -2592,7 +2613,7 @@ async function get_profit() {
                                 komisyon += parseFloat(json[i].income);
                             }
                         }
-                        else if (json[i].incomeType == "FUNDING_FEE"){
+                        else if (json[i].incomeType == "FUNDING_FEE") {
                             komisyon += parseFloat(json[i].income);
                         }
                     }
@@ -2665,25 +2686,25 @@ async function coinler() {
     let coin_list = []
 
     await binance.futuresExchangeInfo()
-    .then(json => {
+        .then(json => {
 
-        for (let i = 0; i < json.symbols.length; i++) {
-            if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
-                if (ignored_coin_list.indexOf(json.symbols[i].symbol) === -1) { //aranan eleman ignored_coin_list dizisinde yok ise coin_list dizisine eklenecek.
-                    coin_list.push(json.symbols[i].symbol);
+            for (let i = 0; i < json.symbols.length; i++) {
+                if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
+                    if (ignored_coin_list.indexOf(json.symbols[i].symbol) === -1) { //aranan eleman ignored_coin_list dizisinde yok ise coin_list dizisine eklenecek.
+                        coin_list.push(json.symbols[i].symbol);
+                    }
                 }
-            }
 
-        }
-    })
-    .catch(err => { console.log(new Date().toLocaleTimeString() + " - err1: " + err);  })
+            }
+        })
+        .catch(err => { console.log(new Date().toLocaleTimeString() + " - err1: " + err); })
 
     return coin_list
 }
 
 
 async function send_mail(kime, konu, mesaj) {
-    
+
     var transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
@@ -2707,8 +2728,8 @@ async function send_mail(kime, konu, mesaj) {
     });
 }
 
-async function send_mail_cuneyt(konu, mesaj){
-    let hata=false
+async function send_mail_cuneyt(konu, mesaj) {
+    let hata = false
     while (true) {
         var transporter = nodemailer.createTransport({
             service: 'gmail',
@@ -2725,19 +2746,19 @@ async function send_mail_cuneyt(konu, mesaj){
         };
         transporter.sendMail(mailOptions, function (error, info) {
             if (error) {
-                hata=true
+                hata = true
                 // console.log(error);
             } else {
-                hata=false
+                hata = false
                 //console.log('Email sent: ' + info.response);
                 //console.log(new Date().toLocaleTimeString() + " - Cüneyt maili gönderildi.");
             }
         });
 
-        if(hata==true){
+        if (hata == true) {
             console.log(new Date().toLocaleTimeString() + " - Mail gönderirken hata; " + konu)
             await bekle(60);
-        }else{
+        } else {
             return;
         }
     }
