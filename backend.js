@@ -50,7 +50,7 @@ const config = {
 setInterval(async () => {
     try {
         const response = await axios.get('https://rsi-sven.onrender.com/health');
-        // console.log(`Health Check: ${response.status}`);
+        console.log(`Health Check: ${response.status}`);
     } catch (err) {
         console.error('Ping failed:', err.message);
     }
@@ -121,7 +121,7 @@ async function insertRsiData(json) {
         // Batch işlemini Firestore'a uygulayın
         await batch.commit();
 
-        // console.log("Veriler Firestore'a başarıyla eklendi.");
+        console.log("Veriler Firestore'a başarıyla eklendi.");
     } catch (err) {
         console.error("Firestore ekleme hatası:", err);
     }
