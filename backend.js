@@ -1,15 +1,11 @@
 import express from 'express';
 import sql from 'mssql';
-import bodyParser from 'body-parser';
-import fetch from 'node-fetch';
 import open from 'open';
 import axios from 'axios';
 import notifier from 'node-notifier';
-import path from 'path';
 import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
 import { collection, query, where, orderBy, limit, getDocs, writeBatch, doc } from "firebase/firestore";
 import nodemailer from 'nodemailer';
-import { exec } from 'child_process';
 
 
 const app = express();
@@ -74,24 +70,6 @@ async function get_trading_status() { // status_id=1 ise trading açık demektir
 }
 
 
-
-// ip sabitleyerek, kendi bilgisayarımı sunucu olarak kullanabilirim. 5dk aralıklarla bu fonksiyonu çalıştırmak gerekiyor. 26.01.2025
-function ip_sabitle() {
-    // .bat dosyasının yolu
-    const batFilePath = 'ip_sabitle.bat';
-
-    exec(`cmd /c ${batFilePath}`, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Hata: ${error.message}`);
-            return;
-        }
-        if (stderr) {
-            console.error(`Hata Çıktısı: ${stderr}`);
-            return;
-        }
-        console.log(`Başarı: ${stdout}`);
-    });
-}
 
 async function insertRsiData(json) {
     try {
@@ -200,8 +178,7 @@ const binance = new Binance().options({
     // APIKEY: 'KoankrgkpVEp6u6dljT7AebXNo5nhbW07ovdDCWpxXDfrLp1mrIbNLtnpeGTJRID', //ergün
     // APISECRET: 'RgEd5U38P6Ykoah66uCljBKRLiGDDOIGFqsNdEdABHaGVVF5ORsgKZysPgqAGydc', //ergün
 
-    'recvWindow': 10000000,
-    baseUrl: "http://https://rsi-vwtw.onrender.com"
+    'recvWindow': 10000000
 });
 
 // JSON ve URL-encoded verileri işlemek için:
@@ -240,6 +217,7 @@ async function start_bot() {
         json = []
         taranan_coin_sayisi = 0
         rsi_kucuktur_30_sayisi = 0
+        count_rsi = 0
 
         let btc_data = await saat_calculate_indicators("BTCUSDT");
         let btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi'])
