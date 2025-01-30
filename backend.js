@@ -4,7 +4,7 @@ import open from 'open';
 import axios from 'axios';
 import notifier from 'node-notifier';
 import { db } from './firebase.js'; // Firebase yapılandırmasının olduğu dosyadan db'yi içe aktarın
-import { collection, query, where, orderBy, limit, getDocs, writeBatch, doc } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, getDocs, writeBatch, doc, setDoc, getDoc } from "firebase/firestore";
 import nodemailer from 'nodemailer';
 
 
@@ -50,7 +50,7 @@ setInterval(async () => {
     } catch (err) {
         console.error('Ping failed:', err.message);
     }
-}, 60*1000);
+}, 5*60*1000);
 
 async function get_trading_status() { // status_id=1 ise trading açık demektir, 0 ise kapalı
     try {
@@ -106,12 +106,32 @@ async function insertRsiData(json) {
 }
 
 
+async function insertRsiData_array(json) {
+    try {
+        const insertDateTime = new Date();
+
+        // Koleksiyon ve döküman referansı (örneğin: "coin_rsi/latest_data")
+        const docRef = doc(db, "coin_rsi_array", "latest_data"); // "latest_data" adlı tek bir doküman
+
+        // Firestore'a tek bir döküman olarak JSON verisini ekleme
+        await setDoc(docRef, {
+            timestamp: insertDateTime, // Eklenen zaman
+            data: json // 350 coin verisini tek bir dizi olarak kaydet
+        });
+
+        console.log("Tüm veriler Firestore'a tek bir döküman olarak kaydedildi.");
+    } catch (err) {
+        console.error("Firestore ekleme hatası:", err);
+    }
+}
+
+
 app.get('/health', (req, res) => {
     res.send('OK');
 });
 
 
-app.get('/get-rsi-data', async (req, res) => {
+/*app.get('/get-rsi-data', async (req, res) => {
     try {
         const coinRsiRef = collection(db, "coin_rsi");
 
@@ -153,8 +173,31 @@ app.get('/get-rsi-data', async (req, res) => {
         console.error("Firestore hatası:", err);
         res.status(500).send("Veritabanı hatası");
     }
-});
+});*/
 
+app.get('/get-rsi-data', async (req, res) => {
+    try {
+        // Koleksiyon ve döküman referansı (tek bir döküman var)
+        const docRef = doc(db, "coin_rsi_array", "latest_data");
+
+        // Dökümanı al
+        const docSnapshot = await getDoc(docRef);
+
+        if (!docSnapshot.exists()) {
+            return res.status(404).send("Veri bulunamadı");
+        }
+
+        // Veriyi JSON formatında döndür
+        const data = docSnapshot.data();
+        
+        // Verilerin timestamp ve data içeriğini döndürüyoruz
+        res.json(data); // Verileri JSON olarak döndür
+        
+    } catch (err) {
+        console.error("Firestore hatası:", err);
+        res.status(500).send("Veritabanı hatası");
+    }
+});
 
 
 
@@ -257,7 +300,8 @@ async function start_bot() {
             send_mail_cuneyt(saat + " - RSI<30 sayısı %90'dan fazla!", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
         }
 
-        await insertRsiData(json);
+        // await insertRsiData(json);
+        await insertRsiData_array(json);
     }
 
 }
@@ -983,7 +1027,7 @@ async function saat_get_data(coin_name) {
             await binance.futuresCandles(coin_name, "1h", { limit: 490 })
                 .then(json => {
 
-                    if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
+                    if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()){
                         durum = false;
                         //json[json.length-1][1] = openPrice
                         //json[json.length-1][2] = maxPrice
