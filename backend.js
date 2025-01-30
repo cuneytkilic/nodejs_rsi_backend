@@ -237,6 +237,7 @@ let coin_market_cap = []
 let sum_rsi = 0
 let count_rsi = 0
 let rsi_kucuktur_30_sayisi = 0
+let rsi_buyuktur_70_sayisi = 0
 
 get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
@@ -260,7 +261,9 @@ async function start_bot() {
         json = []
         taranan_coin_sayisi = 0
         rsi_kucuktur_30_sayisi = 0
+        rsi_buyuktur_70_sayisi = 0
         count_rsi = 0
+        sum_rsi = 0
 
         let btc_data = await saat_calculate_indicators("BTCUSDT");
         let btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi'])
@@ -276,28 +279,33 @@ async function start_bot() {
 
         let ortalama_rsi = sum_rsi / count_rsi;
         let rsi_kucuktur_30_yuzdesi = rsi_kucuktur_30_sayisi / count_rsi * 100
+        let rsi_buyuktur_70_yuzdesi = rsi_buyuktur_70_sayisi / count_rsi * 100
         let saat = new Date(new Date().setHours(new Date().getHours() + 3)).toLocaleTimeString(); // Şu anki Türkiye saati (sunucuda 3 saat geriden geliyor diye bu şekilde 3 saat ileri aldım)
         console.log(saat + " - saatlik tarama bitti. Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2));
+        let mail_mesaj = "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 %: " + rsi_kucuktur_30_yuzdesi.toFixed(2) + "\nRSI>70 %: " + rsi_buyuktur_70_yuzdesi.toFixed(2) + "\nCoin Sayısı: " + count_rsi
 
         if ((btc_rsi < 30 && ortalama_rsi < 30) || (btc_rsi > 70 && ortalama_rsi > 70)) {
             // firestore veritabanına kayıt olan kişilerin e-posta adreslerine mail gönderme kodu eklenecek. 22.02.2025
-            send_mail_cuneyt(saat + " - Güçlü RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
+            send_mail_cuneyt(saat + " - Güçlü RSI Sinyali", mail_mesaj)
         }
         else if (btc_rsi < 30) {
-            send_mail_cuneyt(saat + " - Bitcoin<30, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
+            send_mail_cuneyt(saat + " - Bitcoin<30, RSI Sinyali", mail_mesaj)
         }
         else if (btc_rsi > 70) {
-            send_mail_cuneyt(saat + " - Bitcoin>70, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
+            send_mail_cuneyt(saat + " - Bitcoin>70, RSI Sinyali", mail_mesaj)
         }
         else if (ortalama_rsi < 30) {
-            send_mail_cuneyt(saat + " - Piyasa<30, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
+            send_mail_cuneyt(saat + " - Piyasa<30, RSI Sinyali", mail_mesaj)
         }
         else if (ortalama_rsi > 70) {
-            send_mail_cuneyt(saat + " - Piyasa>70, RSI Sinyali", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
+            send_mail_cuneyt(saat + " - Piyasa>70, RSI Sinyali", mail_mesaj)
         }
 
         if (rsi_kucuktur_30_yuzdesi >= 90) { //rsi<30 olan coin sayisi %90'dan fazla ise ekstra mail gönderilecek.
-            send_mail_cuneyt(saat + " - RSI<30 sayısı %90'dan fazla!", "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 Yüzdesi: " + rsi_kucuktur_30_yuzdesi + "\nCoin Sayısı: " + count_rsi)
+            send_mail_cuneyt(saat + " - RSI<30 sayısı %90'dan fazla!", mail_mesaj)
+        }
+        else if(rsi_buyuktur_70_yuzdesi >= 90){
+            send_mail_cuneyt(saat + " - RSI>70 sayısı %90'dan fazla!", mail_mesaj)
         }
 
         // await insertRsiData(json);
@@ -342,6 +350,9 @@ async function coin_tarama(coin_name) {
 
         if (rsi < 30) {
             rsi_kucuktur_30_sayisi++
+        }
+        else if(rsi > 70){
+            rsi_buyuktur_70_sayisi++
         }
 
         try {
