@@ -23,7 +23,7 @@ let profit_rate = 0.01; //0.15 => %15 kar oranı (her al&sat işleminden elde ed
 let emir_sayisi = 50
 let alinabilir_max_coin_sayisi = 1
 let tickSize_stepSize_list = []
-let ignored_coin_list = []
+let ignored_coin_list = ["USDCUSDT","BTCDOMUSDT"]
 let coin_market_cap_api_key = "ec2e891f-5007-49ed-895b-726a83728aaf" //"408297cf-3642-4237-b036-35e4e81baa33";
 let limit_marketcap = 200;
 let trading_status = 0
