@@ -285,7 +285,7 @@ async function start_bot() {
         let mail_mesaj = "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 %: " + rsi_kucuktur_30_yuzdesi.toFixed(2) + "\nRSI>70 %: " + rsi_buyuktur_70_yuzdesi.toFixed(2) + "\nCoin Sayısı: " + count_rsi
 
         if(rsi_kucuktur_30_yuzdesi >= 95){
-            send_mail_cuneyt(saat + " - ALL IN Girme Fırsatı, RSI<30 sayısı %95'ten fazla!", "BTC RSI<30 ise kesinlikle giriş fırsatı demektir." + mail_mesaj)
+            send_mail_cuneyt(saat + " - ALL IN Girme Fırsatı, RSI<30 sayısı %95'ten fazla!", "NOT: BTC RSI<30 ise kesinlikle giriş fırsatı demektir.\n" + mail_mesaj)
         }
         else{
 
