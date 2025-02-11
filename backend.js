@@ -373,7 +373,7 @@ async function coin_tarama(coin_name) {
             .then(json => {
                 for(let i=0; i<json.length; i++){
                     if(json[i].symbol == coin_name){
-                        funding_rate = json[i].lastFundingRate*100;
+                        funding_rate = parseFloat(json[i].lastFundingRate)*100;
                         break;
                     }
                 }
@@ -388,7 +388,7 @@ async function coin_tarama(coin_name) {
                 "atr_degisim": atr_degisim,
                 "atr_degisim_2": atr_degisim_2,
                 "rank": rank,
-                "funding_rate": funding_rate,
+                "funding_rate": funding_rate.toFixed(4),
             });
         }
 
