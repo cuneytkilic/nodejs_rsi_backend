@@ -288,7 +288,6 @@ async function start_bot() {
             send_mail_cuneyt(saat + " - ALL IN Girme Fırsatı, RSI<30 sayısı %95'ten fazla!", "NOT: BTC RSI<30 ise kesinlikle giriş fırsatı demektir.\n" + mail_mesaj)
         }
         else{
-
         
             if ((btc_rsi < 30 && ortalama_rsi < 30) || (btc_rsi > 70 && ortalama_rsi > 70)) {
                 // firestore veritabanına kayıt olan kişilerin e-posta adreslerine mail gönderme kodu eklenecek. 22.02.2025
@@ -313,6 +312,7 @@ async function start_bot() {
             else if(rsi_buyuktur_70_yuzdesi >= 90){
                 send_mail_cuneyt(saat + " - RSI>70 sayısı %90'dan fazla!", mail_mesaj)
             }
+
         }
 
         // await insertRsiData(json);
@@ -365,17 +365,35 @@ async function coin_tarama(coin_name) {
         try {
             let coin_mcap = coin_market_cap.filter(item => item.coin_name == coin_name);
             let rank = coin_mcap[0]?.rank || null; // Rank bilgisini kontrol et
+            //let marekt_cap = coin_mcap[0]?.market_cap || null;
+            let name = coin_mcap[0]?.name || null;
+            let funding_rate = null;
+
+            await binance.futuresMarkPrice()
+            .then(json => {
+                for(let i=0; i<json.length; i++){
+                    if(json[i].symbol == coin_name){
+                        funding_rate = json[i].lastFundingRate*100;
+                        break;
+                    }
+                }
+            })
 
             json.push({
                 "coin_name": coin_name,
+                "name": name,
                 "rsi": rsi, //en son rsi değeri
                 "rsi_2": rsi_2, //önceki rsi değeri
                 "closePrice": closePrice,
                 "atr_degisim": atr_degisim,
                 "atr_degisim_2": atr_degisim_2,
                 "rank": rank,
+                "funding_rate": funding_rate,
             });
         }
+
+
+
         catch (error) {
             console.log(new Date().toLocaleTimeString() + " - coin_tarama() içinde hata: " + error)
         }
@@ -548,7 +566,9 @@ async function get_all_market_ranks() {
         // Tüm coinlerin adını ve sıralamasını alın
         const ranks = json.data.map(coin => ({
             coin_name: coin.symbol + "USDT",
+            name: coin.name,
             rank: coin.cmc_rank,
+            market_cap: coin.quote.USD.market_cap,
         }));
 
         console.log(new Date().toLocaleTimeString() + " - mcap çekildi: " + ranks.length)
