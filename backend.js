@@ -315,8 +315,12 @@ async function start_bot() {
 
         }
 
-        // await insertRsiData(json);
-        await insertRsiData_array(json);
+        if(json.length>0){
+            await insertRsiData_array(json);
+        }
+        else{
+            console.log(new Date().toLocaleTimeString() + " - veri gelmediği için veritabanı güncellenmedi.")
+        }
     }
 
 }
@@ -373,7 +377,7 @@ async function coin_tarama(coin_name) {
             .then(json => {
                 for(let i=0; i<json.length; i++){
                     if(json[i].symbol == coin_name){
-                        funding_rate = parseFloat(json[i].lastFundingRate)*100;
+                        funding_rate = (parseFloat(json[i].lastFundingRate)*100).toFixed(4);
                         break;
                     }
                 }
@@ -388,7 +392,7 @@ async function coin_tarama(coin_name) {
                 "atr_degisim": atr_degisim,
                 "atr_degisim_2": atr_degisim_2,
                 "rank": rank,
-                "funding_rate": funding_rate.toFixed(4),
+                "funding_rate": funding_rate,
             });
         }
 
