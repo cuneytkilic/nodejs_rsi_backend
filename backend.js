@@ -251,12 +251,12 @@ async function get_coin_list_and_market_cap() {
 
 start_bot();
 async function start_bot() {
-
+    await bekle(6*60);
     coin_list = await coinler();
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
     while (true) {
-        await bekle_60dk();
+        // await bekle_60dk();
 
         json = []
         taranan_coin_sayisi = 0
