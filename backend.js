@@ -371,7 +371,7 @@ async function coin_tarama(coin_name) {
             let rank = coin_mcap[0]?.rank || null; // Rank bilgisini kontrol et
             //let marekt_cap = coin_mcap[0]?.market_cap || null;
             let name = coin_mcap[0]?.name || null;
-            let funding_rate = null;
+            /*let funding_rate = null;
 
             await binance.futuresMarkPrice()
             .then(json => {
@@ -381,7 +381,7 @@ async function coin_tarama(coin_name) {
                         break;
                     }
                 }
-            })
+            })*/
 
             json.push({
                 "coin_name": coin_name,
@@ -392,7 +392,6 @@ async function coin_tarama(coin_name) {
                 "atr_degisim": atr_degisim,
                 "atr_degisim_2": atr_degisim_2,
                 "rank": rank,
-                "funding_rate": funding_rate,
             });
         }
 
