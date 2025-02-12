@@ -256,7 +256,7 @@ async function start_bot() {
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
     while (true) {
-        // await bekle_60dk();
+        await bekle_60dk();
 
         json = []
         taranan_coin_sayisi = 0
