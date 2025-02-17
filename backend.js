@@ -108,6 +108,11 @@ async function insertRsiData(json) {
 
 async function insertRsiData_array(json) {
     try {
+        // Rank < 200 filtresi uygula ve degisim değerine göre büyükten küçüğe sırala
+        const filtered_sorted_list = analiz_list
+            .filter(item => item.rank !== null && item.rank < 200) // null olmayan ve rank < 200 olanları seç
+            .sort((a, b) => b.degisim - a.degisim); // degisim değerine göre sıralama
+        
         const insertDateTime = new Date();
 
         // Koleksiyon ve döküman referansı (örneğin: "coin_rsi/latest_data")
@@ -116,7 +121,8 @@ async function insertRsiData_array(json) {
         // Firestore'a tek bir döküman olarak JSON verisini ekleme
         await setDoc(docRef, {
             timestamp: insertDateTime, // Eklenen zaman
-            data: json // 350 coin verisini tek bir dizi olarak kaydet
+            data: json, // 350 coin verisini tek bir dizi olarak kaydet
+            analiz_data: filtered_sorted_list //analize göre koşullara uyan coinlerin listesi
         });
 
         console.log("Tüm veriler Firestore'a tek bir döküman olarak kaydedildi.");
@@ -233,6 +239,7 @@ let coin_list = [];
 let coin_arr = [];
 let taranan_coin_sayisi = 0
 let json = []
+let analiz_list = []
 let coin_market_cap = []
 let sum_rsi = 0
 let count_rsi = 0
@@ -251,7 +258,6 @@ async function get_coin_list_and_market_cap() {
 
 start_bot();
 async function start_bot() {
-    await bekle(6*60);
     coin_list = await coinler();
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
@@ -259,6 +265,7 @@ async function start_bot() {
         await bekle_60dk();
 
         json = []
+        analiz_list = []
         taranan_coin_sayisi = 0
         rsi_kucuktur_30_sayisi = 0
         rsi_buyuktur_70_sayisi = 0
@@ -317,6 +324,7 @@ async function start_bot() {
 
         if(json.length>0){
             await insertRsiData_array(json);
+            return;
         }
         else{
             console.log(new Date().toLocaleTimeString() + " - veri gelmediği için veritabanı güncellenmedi.")
@@ -383,6 +391,34 @@ async function coin_tarama(coin_name) {
                 }
             })*/
 
+
+
+
+
+
+
+            //analiz kodu
+            for(let k=data.length-2;k>5;k--){
+                if(data[k]["rsi"]>67){
+                    for(let a=k+2;a<data.length-2;a++){
+
+                        if(data[a-1]["rsi"]<30 && data[a]["rsi"]>30 && data[a]["atr_degisim"]>2){
+                            let entryPrice = data[a]["close"]
+                            let lastPrice = data[data.length-2]["close"]
+                            let atr_degisim = parseFloat(data[data.length-2]["atr_degisim"]).toFixed(2)
+                            let rsi = parseFloat(data[data.length-2]["rsi"]).toFixed(2)
+                            let degisim = parseFloat(((lastPrice-entryPrice)/entryPrice*100).toFixed(2))
+
+                            analiz_list.push({"coin_name":data[a].coin_name, "entryPrice":entryPrice, "lastPrice":lastPrice, "degisim":degisim, "atr":atr_degisim, "rsi":rsi, "rank":rank});
+                            
+                            break
+                        }
+                    }
+                    break
+                }
+            }
+
+            //veritabanına yazılacak olan json dizisine push ediliyor.
             json.push({
                 "coin_name": coin_name,
                 "name": name,
