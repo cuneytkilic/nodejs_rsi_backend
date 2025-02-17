@@ -324,7 +324,6 @@ async function start_bot() {
 
         if(json.length>0){
             await insertRsiData_array(json);
-            return;
         }
         else{
             console.log(new Date().toLocaleTimeString() + " - veri gelmediği için veritabanı güncellenmedi.")
