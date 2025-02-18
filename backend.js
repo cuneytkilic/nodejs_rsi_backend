@@ -403,12 +403,14 @@ async function coin_tarama(coin_name) {
 
                         if(data[a-1]["rsi"]<30 && data[a]["rsi"]>30 && data[a]["atr_degisim"]>2){
                             let entryPrice = data[a]["close"]
+                            let signal_date = data[a]["date"]
+                            let signal_time = data[a]["time"]
                             let lastPrice = data[data.length-2]["close"]
                             let atr_degisim = parseFloat(data[data.length-2]["atr_degisim"]).toFixed(2)
                             let rsi = parseFloat(data[data.length-2]["rsi"]).toFixed(2)
                             let degisim = parseFloat(((lastPrice-entryPrice)/entryPrice*100).toFixed(2))
 
-                            analiz_list.push({"coin_name":data[a].coin_name, "entryPrice":entryPrice, "lastPrice":lastPrice, "degisim":degisim, "atr":atr_degisim, "rsi":rsi, "rank":rank});
+                            analiz_list.push({"coin_name":data[a].coin_name, "entryPrice":entryPrice, "lastPrice":lastPrice, "degisim":degisim, "atr":atr_degisim, "rsi":rsi, "rank":rank, "signal_date":signal_date, "signal_time":signal_time});
                             
                             break
                         }
