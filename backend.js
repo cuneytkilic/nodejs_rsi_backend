@@ -23,7 +23,7 @@ let profit_rate = 0.01; //0.15 => %15 kar oranı (her al&sat işleminden elde ed
 let emir_sayisi = 50
 let alinabilir_max_coin_sayisi = 1
 let tickSize_stepSize_list = []
-let ignored_coin_list = ["USDCUSDT","BTCDOMUSDT"]
+let ignored_coin_list = ["USDCUSDT", "BTCDOMUSDT"]
 let coin_market_cap_api_key = "ec2e891f-5007-49ed-895b-726a83728aaf" //"408297cf-3642-4237-b036-35e4e81baa33";
 let limit_marketcap = 200;
 let trading_status = 0
@@ -50,7 +50,7 @@ setInterval(async () => {
     } catch (err) {
         console.error('Ping failed:', err.message);
     }
-}, 5*60*1000);
+}, 5 * 60 * 1000);
 
 async function get_trading_status() { // status_id=1 ise trading açık demektir, 0 ise kapalı
     try {
@@ -112,17 +112,28 @@ async function insertRsiData_array(json) {
         const filtered_sorted_list = analiz_list
             .filter(item => item.rank !== null && item.rank < 200) // null olmayan ve rank < 200 olanları seç
             .sort((a, b) => b.degisim - a.degisim); // degisim değerine göre sıralama
-        
+
         const insertDateTime = new Date();
 
         // Koleksiyon ve döküman referansı (örneğin: "coin_rsi/latest_data")
         const docRef = doc(db, "coin_rsi_array", "latest_data"); // "latest_data" adlı tek bir doküman
 
-        // Firestore'a tek bir döküman olarak JSON verisini ekleme
+        // Mevcut veriyi al
+        const docSnap = await getDoc(docRef);
+        let existingData = docSnap.exists() ? docSnap.data() : {};
+
+        // `history_data` varsa yeni veriyi ekle, yoksa oluştur
+        const updatedHistoryData = existingData.history_data 
+            ? [...existingData.history_data, ...history_list] // Eski + Yeni veriyi birleştir
+            : history_list; // Eğer yoksa direkt yeni veriyi ata
+
+
+        // Firestore'a tek bir döküman olarak güncellenmiş veriyi ekleme
         await setDoc(docRef, {
             timestamp: insertDateTime, // Eklenen zaman
             data: json, // 350 coin verisini tek bir dizi olarak kaydet
-            analiz_data: filtered_sorted_list //analize göre koşullara uyan coinlerin listesi
+            analiz_data: filtered_sorted_list, // Analize göre koşullara uyan coinlerin listesi
+            history_data: updatedHistoryData // Güncellenmiş history_data dizisi
         });
 
         console.log("Tüm veriler Firestore'a tek bir döküman olarak kaydedildi.");
@@ -130,6 +141,20 @@ async function insertRsiData_array(json) {
         console.error("Firestore ekleme hatası:", err);
     }
 }
+
+const sinyal_veren_coinler = async () => {
+    const querySnapshot = await getDocs(collection(db, "coin_rsi_array"));
+    let coin_list = []
+    querySnapshot.forEach((doc) => {
+        const data = doc.data();
+
+        for(let i=0;i<data.analiz_data.length;i++){
+            coin_list.push(data.analiz_data[i]);
+        }
+    });
+
+    return coin_list;
+};
 
 
 app.get('/health', (req, res) => {
@@ -195,10 +220,10 @@ app.get('/get-rsi-data', async (req, res) => {
 
         // Veriyi JSON formatında döndür
         const data = docSnapshot.data();
-        
+
         // Verilerin timestamp ve data içeriğini döndürüyoruz
         res.json(data); // Verileri JSON olarak döndür
-        
+
     } catch (err) {
         console.error("Firestore hatası:", err);
         res.status(500).send("Veritabanı hatası");
@@ -240,13 +265,15 @@ let coin_arr = [];
 let taranan_coin_sayisi = 0
 let json = []
 let analiz_list = []
+let history_list = []
+let sinyal_list = []
 let coin_market_cap = []
 let sum_rsi = 0
 let count_rsi = 0
 let rsi_kucuktur_30_sayisi = 0
 let rsi_buyuktur_70_sayisi = 0
 
-get_coin_list_and_market_cap();
+// get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
     while (true) {
         coin_market_cap = await get_all_market_ranks();
@@ -259,13 +286,16 @@ async function get_coin_list_and_market_cap() {
 start_bot();
 async function start_bot() {
     coin_list = await coinler();
+
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
     while (true) {
+        sinyal_list = await sinyal_veren_coinler();
         await bekle_60dk();
 
         json = []
         analiz_list = []
+        history_list = []
         taranan_coin_sayisi = 0
         rsi_kucuktur_30_sayisi = 0
         rsi_buyuktur_70_sayisi = 0
@@ -291,11 +321,11 @@ async function start_bot() {
         console.log(saat + " - saatlik tarama bitti. Bitcoin RSI: " + btc_rsi.toFixed(2) + " - Piyasa Ort. RSI: " + ortalama_rsi.toFixed(2));
         let mail_mesaj = "Bitcoin RSI: " + btc_rsi.toFixed(2) + "\nPiyasa Ort. RSI: " + ortalama_rsi.toFixed(2) + "\nRSI<30 %: " + rsi_kucuktur_30_yuzdesi.toFixed(2) + "\nRSI>70 %: " + rsi_buyuktur_70_yuzdesi.toFixed(2) + "\nCoin Sayısı: " + count_rsi
 
-        if(rsi_kucuktur_30_yuzdesi >= 95){
+        if (rsi_kucuktur_30_yuzdesi >= 95) {
             send_mail_cuneyt(saat + " - ALL IN Girme Fırsatı, RSI<30 sayısı %95'ten fazla!", "NOT: BTC RSI<30 ise kesinlikle giriş fırsatı demektir.\n" + mail_mesaj)
         }
-        else{
-        
+        else {
+
             if ((btc_rsi < 30 && ortalama_rsi < 30) || (btc_rsi > 70 && ortalama_rsi > 70)) {
                 // firestore veritabanına kayıt olan kişilerin e-posta adreslerine mail gönderme kodu eklenecek. 22.02.2025
                 send_mail_cuneyt(saat + " - Güçlü RSI Sinyali", mail_mesaj)
@@ -316,16 +346,17 @@ async function start_bot() {
             if (rsi_kucuktur_30_yuzdesi >= 90) { //rsi<30 olan coin sayisi %90'dan fazla ise ekstra mail gönderilecek.
                 send_mail_cuneyt(saat + " - RSI<30 sayısı %90'dan fazla!", mail_mesaj)
             }
-            else if(rsi_buyuktur_70_yuzdesi >= 90){
+            else if (rsi_buyuktur_70_yuzdesi >= 90) {
                 send_mail_cuneyt(saat + " - RSI>70 sayısı %90'dan fazla!", mail_mesaj)
             }
 
         }
 
-        if(json.length>0){
+        //saatlik veri çekildi ise json.length>0 olacaktır. veri çekilemediğinde insert işlemi yapılmayacak yani hata vermesi engellenecektir.
+        if (json.length > 0) {
             await insertRsiData_array(json);
         }
-        else{
+        else {
             console.log(new Date().toLocaleTimeString() + " - veri gelmediği için veritabanı güncellenmedi.")
         }
     }
@@ -369,7 +400,7 @@ async function coin_tarama(coin_name) {
         if (rsi < 30) {
             rsi_kucuktur_30_sayisi++
         }
-        else if(rsi > 70){
+        else if (rsi > 70) {
             rsi_buyuktur_70_sayisi++
         }
 
@@ -396,22 +427,23 @@ async function coin_tarama(coin_name) {
 
 
 
-            //analiz kodu
-            for(let k=data.length-2;k>5;k--){
-                if(data[k]["rsi"]>67){
-                    for(let a=k+2;a<data.length-2;a++){
+            //analiz kodu, sinyal gelmiş ve kapanmamış coin bilgilerini çekiyorum.
+            for (let k = data.length - 2; k > 5; k--) {
+                if (data[k]["rsi"] > 67) {
+                    for (let a = k + 2; a < data.length - 2; a++) {
 
-                        if(data[a-1]["rsi"]<30 && data[a]["rsi"]>30 && data[a]["atr_degisim"]>2){
+                        if (data[a - 1]["rsi"] < 30 && data[a]["rsi"] > 30 && data[a]["atr_degisim"] > 2) {
                             let entryPrice = data[a]["close"]
                             let signal_date = data[a]["date"]
                             let signal_time = data[a]["time"]
-                            let lastPrice = data[data.length-2]["close"]
-                            let atr_degisim = parseFloat(data[data.length-2]["atr_degisim"]).toFixed(2)
-                            let rsi = parseFloat(data[data.length-2]["rsi"]).toFixed(2)
-                            let degisim = parseFloat(((lastPrice-entryPrice)/entryPrice*100).toFixed(2))
+                            let lastPrice = data[data.length - 2]["close"]
+                            let atr_degisim = parseFloat(data[data.length - 2]["atr_degisim"]).toFixed(2)
+                            let rsi = parseFloat(data[data.length - 2]["rsi"]).toFixed(2)
+                            let degisim = parseFloat(((lastPrice - entryPrice) / entryPrice * 100).toFixed(2))
 
-                            analiz_list.push({"coin_name":data[a].coin_name, "entryPrice":entryPrice, "lastPrice":lastPrice, "degisim":degisim, "atr":atr_degisim, "rsi":rsi, "rank":rank, "signal_date":signal_date, "signal_time":signal_time});
-                            
+                            //ikinci sayfada gösterilen; sinyal veren coin bilgileri
+                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": signal_time });
+
                             break
                         }
                     }
@@ -419,15 +451,27 @@ async function coin_tarama(coin_name) {
                 }
             }
 
-            //veritabanına yazılacak olan json dizisine push ediliyor.
+            //üçüncü sayfada gösterilen; sinyal vermiş coinlerin rsi>67 ise history sayfasında gösterilecek verileri
+            for(let i=0;i<sinyal_list.length;i++){
+                if(sinyal_list[i].coin_name == coin_name){
+                    if(rsi>67 && rsi_2<67){
+                        console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - rsi koşulu sağlandığı için historye kayıt edilecek.");
+                        let result_degisim = parseFloat(((closePrice - sinyal_list[i].entryPrice) / sinyal_list[i].entryPrice * 100).toFixed(2))
+                        history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date": data[data.length - 2]['date'], "exit_time": data[data.length - 2]['time'], "rank": sinyal_list[i].rank});
+                    }
+                    break;
+                }
+            }
+
+            //birinci sayfada gösterilen; coinlerin saatlik verileri
             json.push({
                 "coin_name": coin_name,
                 "name": name,
                 "rsi": rsi, //en son rsi değeri
-                "rsi_2": rsi_2, //önceki rsi değeri
+                "rsi_2": rsi_2, //rsi artmış mı azalmış mı diye ok işaretleriyle göstermek için kullanılıyor.
                 "closePrice": closePrice,
                 "atr_degisim": atr_degisim,
-                "atr_degisim_2": atr_degisim_2,
+                "atr_degisim_2": atr_degisim_2, //atr artmış mı azalmış mı diye ok işaretleriyle göstermek için kullanılıyor.
                 "rank": rank,
             });
         }
@@ -1105,7 +1149,7 @@ async function saat_get_data(coin_name) {
             await binance.futuresCandles(coin_name, "1h", { limit: 490 })
                 .then(json => {
 
-                    if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()){
+                    if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
                         durum = false;
                         //json[json.length-1][1] = openPrice
                         //json[json.length-1][2] = maxPrice
