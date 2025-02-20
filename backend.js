@@ -273,7 +273,7 @@ let count_rsi = 0
 let rsi_kucuktur_30_sayisi = 0
 let rsi_buyuktur_70_sayisi = 0
 
-// get_coin_list_and_market_cap();
+get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
     while (true) {
         coin_market_cap = await get_all_market_ranks();
