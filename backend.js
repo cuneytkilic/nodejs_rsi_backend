@@ -440,7 +440,7 @@ async function coin_tarama(coin_name) {
 
 
 
-            //analiz kodu, sinyal gelmiş ve kapanmamış coin bilgilerini çekiyorum.
+            //ikinci sayfada gösterilen; sinyal gelmiş ve kapanmamış coin bilgilerini çekiyorum.
             for (let k = data.length - 2; k > 5; k--) {
                 if (data[k]["rsi"] > 67) {
                     for (let a = k + 2; a < data.length - 2; a++) {
@@ -449,13 +449,14 @@ async function coin_tarama(coin_name) {
                             let entryPrice = data[a]["close"]
                             let signal_date = data[a]["date"]
                             let signal_time = data[a]["time"]
+                            let first_atr = parseFloat(data[a]["atr_degisim"]).toFixed(2) //ilk sinyal geldiğinde atr değeri
                             let lastPrice = data[data.length - 2]["close"]
                             let atr_degisim = parseFloat(data[data.length - 2]["atr_degisim"]).toFixed(2)
                             let rsi = parseFloat(data[data.length - 2]["rsi"]).toFixed(2)
                             let degisim = parseFloat(((lastPrice - entryPrice) / entryPrice * 100).toFixed(2))
 
                             //ikinci sayfada gösterilen; sinyal veren coin bilgileri
-                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": signal_time });
+                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": signal_time, "first_atr": first_atr});
 
                             break
                         }
