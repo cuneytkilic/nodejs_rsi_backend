@@ -28,6 +28,7 @@ let coin_market_cap_api_key = "ec2e891f-5007-49ed-895b-726a83728aaf" //"408297cf
 let limit_marketcap = 200;
 let trading_status = 0
 let satilmayi_bekleyen_coin_sayisi = 0;
+let alim_sinyali_veren_coin_sayisi = 0;
 
 
 // SQL Server bağlantı ayarları
@@ -299,6 +300,7 @@ async function start_bot() {
         taranan_coin_sayisi = 0
         rsi_kucuktur_30_sayisi = 0
         rsi_buyuktur_70_sayisi = 0
+        alim_sinyali_veren_coin_sayisi = 0
         count_rsi = 0
         sum_rsi = 0
 
@@ -352,6 +354,10 @@ async function start_bot() {
 
         }
 
+        if(alim_sinyali_veren_coin_sayisi>10){
+            send_mail_cuneyt(saat + " - Piyasa yukarı.! Alım sinyali veren coin sayısı 10dan fazla!", mail_mesaj+"\nalim_sinyali_veren_coin_sayisi: "+alim_sinyali_veren_coin_sayisi);
+        }
+
         //saatlik veri çekildi ise json.length>0 olacaktır. veri çekilemediğinde insert işlemi yapılmayacak yani hata vermesi engellenecektir.
         if (json.length > 0) {
             await insertRsiData_array(json);
@@ -394,17 +400,24 @@ async function coin_tarama(coin_name) {
         let atr_degisim_2 = parseFloat(data[data.length - 3]['atr_degisim'].toFixed(2))
         let closePrice = parseFloat(data[data.length - 2]['close'])
 
-        sum_rsi += rsi;
-        count_rsi++;
-
-        if (rsi < 30) {
-            rsi_kucuktur_30_sayisi++
-        }
-        else if (rsi > 70) {
-            rsi_buyuktur_70_sayisi++
-        }
+        
 
         try {
+
+            if(rsi_2<30 && rsi>30 && atr_degisim>2){
+                alim_sinyali_veren_coin_sayisi++
+            }
+
+            sum_rsi += rsi;
+            count_rsi++;
+
+            if (rsi < 30) {
+                rsi_kucuktur_30_sayisi++
+            }
+            else if (rsi > 70) {
+                rsi_buyuktur_70_sayisi++
+            }
+
             let coin_mcap = coin_market_cap.filter(item => item.coin_name == coin_name);
             let rank = coin_mcap[0]?.rank || null; // Rank bilgisini kontrol et
             //let marekt_cap = coin_mcap[0]?.market_cap || null;
