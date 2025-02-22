@@ -278,7 +278,7 @@ get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
     while (true) {
         coin_market_cap = await get_all_market_ranks();
-        await bekle(60 * 60 * 12);
+        await bekle(60 * 60 * 6); //6 saat aralıklarla rank ve coin listesini günceller.
         coin_list = await coinler();
     }
 }
