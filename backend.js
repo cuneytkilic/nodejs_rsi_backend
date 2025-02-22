@@ -471,7 +471,7 @@ async function coin_tarama(coin_name) {
                     if(rsi>67 && rsi_2<67){
                         console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - rsi koşulu sağlandığı için historye kayıt edilecek.");
                         let result_degisim = parseFloat(((closePrice - sinyal_list[i].entryPrice) / sinyal_list[i].entryPrice * 100).toFixed(2))
-                        history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": data[data.length - 2]['date_time'], "exit_date": data[data.length - 2]['date'], "exit_time": data[data.length - 2]['time'], "rank": sinyal_list[i].rank});
+                        history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": new Date(data[data.length - 2]['date_time']), "exit_date": data[data.length - 2]['date'], "exit_time": data[data.length - 2]['time'], "rank": sinyal_list[i].rank});
                     }
                     break;
                 }
