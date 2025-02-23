@@ -475,7 +475,7 @@ async function coin_tarama(coin_name) {
                 if(sinyal_list[i].coin_name == coin_name){
                     if(rsi>67 && rsi_2<67){
                         console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - rsi koşulu sağlandığı için historye kayıt edilecek.");
-                        let exit_date_time = new Date(data[data.length - 2]['date_time'].getTime() + 1000);
+                        let exit_date_time = new Date(data[data.length - 2]['date_time'].getTime() + 1000 + (3 * 60 * 60 * 1000));
                         let exit_date = exit_date_time.toLocaleDateString();
                         let exit_time = exit_date_time.toLocaleTimeString("tr-TR", {hour: "2-digit", minute: "2-digit"});
                         let result_degisim = parseFloat(((closePrice - sinyal_list[i].entryPrice) / sinyal_list[i].entryPrice * 100).toFixed(2))
