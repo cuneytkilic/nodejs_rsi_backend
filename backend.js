@@ -355,7 +355,7 @@ async function start_bot() {
         }
 
         if(alim_sinyali_veren_coin_sayisi>10){
-            send_mail_cuneyt(saat + " - Piyasa yukarı.! Alım sinyali veren coin sayısı 10dan fazla!", mail_mesaj+"\nalim_sinyali_veren_coin_sayisi: "+alim_sinyali_veren_coin_sayisi);
+            send_mail_cuneyt(saat + " - Piyasa yükselebilir, alım sinyali veren coin sayısı 10dan fazla!", mail_mesaj+"\nalim_sinyali_veren_coin_sayisi: "+alim_sinyali_veren_coin_sayisi);
         }
 
         //saatlik veri çekildi ise json.length>0 olacaktır. veri çekilemediğinde insert işlemi yapılmayacak yani hata vermesi engellenecektir.
@@ -447,6 +447,7 @@ async function coin_tarama(coin_name) {
 
                         if (data[a - 1]["rsi"] < 30 && data[a]["rsi"] > 30 && data[a]["atr_degisim"] > 2) {
                             let entryPrice = data[a]["close"]
+                            let signal_date_time = data[a]["date_time"]
                             let signal_date = data[a]["date"]
                             let signal_time = data[a]["time"]
                             let first_atr = parseFloat(data[a]["atr_degisim"]).toFixed(2) //ilk sinyal geldiğinde atr değeri
@@ -455,8 +456,10 @@ async function coin_tarama(coin_name) {
                             let rsi = parseFloat(data[data.length - 2]["rsi"]).toFixed(2)
                             let degisim = parseFloat(((lastPrice - entryPrice) / entryPrice * 100).toFixed(2))
 
+                            let gecen_saat = saatFarki(signal_date_time, new Date()); //kaç saat önce sinyal geldiğinin bilgisini verir.
+                            let turkiyeSaati = signal_time.toLocaleTimeString("tr-TR", { timeZone: "Europe/Istanbul" });
                             //ikinci sayfada gösterilen; sinyal veren coin bilgileri
-                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": signal_time, "first_atr": first_atr});
+                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": turkiyeSaati, "first_atr": first_atr, "sinyal_zamani": gecen_saat});
 
                             break
                         }
@@ -471,7 +474,7 @@ async function coin_tarama(coin_name) {
                     if(rsi>67 && rsi_2<67){
                         console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - rsi koşulu sağlandığı için historye kayıt edilecek.");
                         let result_degisim = parseFloat(((closePrice - sinyal_list[i].entryPrice) / sinyal_list[i].entryPrice * 100).toFixed(2))
-                        history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": new Date(data[data.length - 2]['date_time']), "exit_date": data[data.length - 2]['date'], "exit_time": data[data.length - 2]['time'], "rank": sinyal_list[i].rank});
+                        history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": data[data.length - 2]['date_time'], "exit_date": data[data.length - 2]['date'], "exit_time": data[data.length - 2]['time'], "rank": sinyal_list[i].rank});
                     }
                     break;
                 }
@@ -503,6 +506,11 @@ async function coin_tarama(coin_name) {
 
 }
 
+function saatFarki(tarih1, tarih2) {
+    const farkMs = Math.abs(new Date(tarih2) - new Date(tarih1)); // Milisaniye cinsinden fark
+    const farkSaat = farkMs / (1000 * 60 * 60); // Milisaniyeyi saate çevir
+    return farkSaat;
+}
 
 async function get_breakEvenPrice(symbol) {
     try {
