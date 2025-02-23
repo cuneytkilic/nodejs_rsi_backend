@@ -286,7 +286,7 @@ async function get_coin_list_and_market_cap() {
 
 start_bot();
 async function start_bot() {
-    await bekle(10);
+    await bekle(3);
     coin_list = await coinler();
 
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
@@ -444,20 +444,19 @@ async function coin_tarama(coin_name) {
             //ikinci sayfada gösterilen; sinyal gelmiş ve kapanmamış coin bilgilerini çekiyorum. (analiz_data)
             for (let k = data.length - 2; k > 5; k--) {
                 if (data[k]["rsi"] > 67) {
-                    for (let a = k + 2; a < data.length - 2; a++) {
+                    for (let a = k + 2; a < data.length - 1; a++) {
 
                         if (data[a - 1]["rsi"] < 30 && data[a]["rsi"] > 30 && data[a]["atr_degisim"] > 2) {
                             let entryPrice = data[a]["close"]
-                            let signal_date_time = data[a]["date_time"]
-                            let signal_date = data[a]["date"]
+                            let signal_date_time = new Date(data[a]["date_time"].getTime() + 1000);
+                            let signal_date = signal_date_time.toLocaleDateString();
+                            let signal_time = signal_date_time.toLocaleTimeString("tr-TR", {hour: "2-digit", minute: "2-digit"});
                             let first_atr = parseFloat(data[a]["atr_degisim"]).toFixed(2) //ilk sinyal geldiğinde atr değeri
                             let lastPrice = data[data.length - 2]["close"]
                             let atr_degisim = parseFloat(data[data.length - 2]["atr_degisim"]).toFixed(2)
                             let rsi = parseFloat(data[data.length - 2]["rsi"]).toFixed(2)
                             let degisim = parseFloat(((lastPrice - entryPrice) / entryPrice * 100).toFixed(2))
-
                             let gecen_saat = Math.round(saatFarki(signal_date_time, new Date())); //kaç saat önce sinyal geldiğinin bilgisini verir.
-                            let signal_time = signal_date_time.getHours().toString() + ":" + signal_date_time.getMinutes().toString();
 
                             //ikinci sayfada gösterilen; sinyal veren coin bilgileri
                             analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": signal_time, "first_atr": first_atr, "sinyal_zamani": gecen_saat});
@@ -474,11 +473,12 @@ async function coin_tarama(coin_name) {
                 if(sinyal_list[i].coin_name == coin_name){
                     if(rsi>67 && rsi_2<67){
                         console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - rsi koşulu sağlandığı için historye kayıt edilecek.");
-                        let exit_date_time = data[data.length - 2]['date_time'];
-                        let exit_time = exit_date_time.getHours().toString() + ":" + exit_date_time.getMinutes().toString();
+                        let exit_date_time = new Date(data[data.length - 2]['date_time'].getTime() + 1000);
+                        let exit_date = exit_date_time.toLocaleDateString();
+                        let exit_time = exit_date_time.toLocaleTimeString("tr-TR", {hour: "2-digit", minute: "2-digit"});
                         let result_degisim = parseFloat(((closePrice - sinyal_list[i].entryPrice) / sinyal_list[i].entryPrice * 100).toFixed(2))
 
-                        history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": exit_date_time, "exit_date": data[data.length - 2]['date'], "exit_time": exit_time, "rank": sinyal_list[i].rank});
+                        history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": exit_date_time, "exit_date": exit_date, "exit_time": exit_time, "rank": sinyal_list[i].rank});
                     }
                     break;
                 }
