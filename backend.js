@@ -274,7 +274,7 @@ let count_rsi = 0
 let rsi_kucuktur_30_sayisi = 0
 let rsi_buyuktur_70_sayisi = 0
 
-get_coin_list_and_market_cap();
+// get_coin_list_and_market_cap();
 async function get_coin_list_and_market_cap() {
     while (true) {
         coin_market_cap = await get_all_market_ranks();
@@ -440,7 +440,7 @@ async function coin_tarama(coin_name) {
 
 
 
-            //ikinci sayfada gösterilen; sinyal gelmiş ve kapanmamış coin bilgilerini çekiyorum.
+            //ikinci sayfada gösterilen; sinyal gelmiş ve kapanmamış coin bilgilerini çekiyorum. (analiz_data)
             for (let k = data.length - 2; k > 5; k--) {
                 if (data[k]["rsi"] > 67) {
                     for (let a = k + 2; a < data.length - 2; a++) {
@@ -449,7 +449,6 @@ async function coin_tarama(coin_name) {
                             let entryPrice = data[a]["close"]
                             let signal_date_time = data[a]["date_time"]
                             let signal_date = data[a]["date"]
-                            let signal_time = data[a]["time"]
                             let first_atr = parseFloat(data[a]["atr_degisim"]).toFixed(2) //ilk sinyal geldiğinde atr değeri
                             let lastPrice = data[data.length - 2]["close"]
                             let atr_degisim = parseFloat(data[data.length - 2]["atr_degisim"]).toFixed(2)
@@ -457,9 +456,10 @@ async function coin_tarama(coin_name) {
                             let degisim = parseFloat(((lastPrice - entryPrice) / entryPrice * 100).toFixed(2))
 
                             let gecen_saat = saatFarki(signal_date_time, new Date()); //kaç saat önce sinyal geldiğinin bilgisini verir.
-                            let turkiyeSaati = signal_time.toLocaleTimeString("tr-TR", { timeZone: "Europe/Istanbul" });
+                            let signal_time = signal_date_time.getHours().toString() + ":" + signal_date_time.getMinutes().toString();
+
                             //ikinci sayfada gösterilen; sinyal veren coin bilgileri
-                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": turkiyeSaati, "first_atr": first_atr, "sinyal_zamani": gecen_saat});
+                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": signal_time, "first_atr": first_atr, "sinyal_zamani": gecen_saat});
 
                             break
                         }
@@ -468,11 +468,12 @@ async function coin_tarama(coin_name) {
                 }
             }
 
-            //üçüncü sayfada gösterilen; sinyal vermiş coinlerin rsi>67 ise history sayfasında gösterilecek verileri
+            //üçüncü sayfada gösterilen; sinyal vermiş coinlerin rsi>67 ise history sayfasında gösterilecek verileri (history_data)
             for(let i=0;i<sinyal_list.length;i++){
                 if(sinyal_list[i].coin_name == coin_name){
                     if(rsi>67 && rsi_2<67){
                         console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - rsi koşulu sağlandığı için historye kayıt edilecek.");
+                        let ozel_sinyal_saati = sinyal_list[i].signal_time.getHours()
                         let result_degisim = parseFloat(((closePrice - sinyal_list[i].entryPrice) / sinyal_list[i].entryPrice * 100).toFixed(2))
                         history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": data[data.length - 2]['date_time'], "exit_date": data[data.length - 2]['date'], "exit_time": data[data.length - 2]['time'], "rank": sinyal_list[i].rank});
                     }
@@ -480,7 +481,7 @@ async function coin_tarama(coin_name) {
                 }
             }
 
-            //birinci sayfada gösterilen; coinlerin saatlik verileri
+            //birinci sayfada gösterilen; coinlerin saatlik verileri (data)
             json.push({
                 "coin_name": coin_name,
                 "name": name,
