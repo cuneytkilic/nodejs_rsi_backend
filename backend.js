@@ -449,17 +449,19 @@ async function coin_tarama(coin_name) {
                         if (data[a - 1]["rsi"] < 30 && data[a]["rsi"] > 30 && data[a]["atr_degisim"] > 2) {
                             let entryPrice = data[a]["close"]
                             let signal_date_time = new Date(data[a]["date_time"].getTime() + 1000);
-                            let signal_date = signal_date_time.toLocaleDateString();
-                            let signal_time = signal_date_time.toLocaleTimeString("tr-TR", {hour: "2-digit", minute: "2-digit"});
                             let first_atr = parseFloat(data[a]["atr_degisim"]).toFixed(2) //ilk sinyal geldiğinde atr değeri
                             let lastPrice = data[data.length - 2]["close"]
                             let atr_degisim = parseFloat(data[data.length - 2]["atr_degisim"]).toFixed(2)
                             let rsi = parseFloat(data[data.length - 2]["rsi"]).toFixed(2)
                             let degisim = parseFloat(((lastPrice - entryPrice) / entryPrice * 100).toFixed(2))
                             let gecen_saat = Math.round(saatFarki(signal_date_time, new Date())); //kaç saat önce sinyal geldiğinin bilgisini verir.
+                            
+                            signal_date_time = new Date(signal_date_time.getTime() + (3 * 60 * 60 * 1000))
+                            let signal_date = signal_date_time.toLocaleDateString();
+                            let signal_time = signal_date_time.toLocaleTimeString("tr-TR", {hour: "2-digit", minute: "2-digit"});
 
                             //ikinci sayfada gösterilen; sinyal veren coin bilgileri
-                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date": signal_date, "signal_time": signal_time, "first_atr": first_atr, "sinyal_zamani": gecen_saat});
+                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date_time": signal_date_time, "signal_date": signal_date, "signal_time": signal_time, "first_atr": first_atr, "sinyal_zamani": gecen_saat});
 
                             break
                         }
