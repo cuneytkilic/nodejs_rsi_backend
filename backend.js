@@ -29,6 +29,7 @@ let limit_marketcap = 200;
 let trading_status = 0
 let satilmayi_bekleyen_coin_sayisi = 0;
 let alim_sinyali_veren_coin_sayisi = 0;
+let ping_sayisi = 0
 
 
 // SQL Server bağlantı ayarları
@@ -47,9 +48,13 @@ const config = {
 setInterval(async () => {
     try {
         const response = await axios.get('https://rsi-sven.onrender.com/health');
-        // console.log(`Health Check: ${response.status}`);
+        if(ping_sayisi>0){
+            console.log(`${ping_sayisi} Health Check: ${response.status}`);
+            ping_sayisi--   
+        }
     } catch (err) {
         console.error('Ping failed:', err.message);
+        ping_sayisi=10;
     }
 }, 1 * 30 * 1000);
 
