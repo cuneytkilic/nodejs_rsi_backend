@@ -306,7 +306,14 @@ async function start_bot() {
         sum_rsi = 0
 
         let btc_data = await saat_calculate_indicators("BTCUSDT");
-        let btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi'])
+        let btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi']);
+
+        if(btc_rsi===null){
+            console.log("btc data boş geldi. btc_rsi:" + btc_rsi);
+            await bekle(5);
+            let tekrar_btc_data = await saat_calculate_indicators("BTCUSDT");
+            btc_rsi = parseFloat(tekrar_btc_data[tekrar_btc_data.length - 2]['rsi']);
+        }
 
         for (let i = 0; i < coin_list.length; i++) {
             coin_tarama(coin_list[i])
