@@ -47,7 +47,7 @@ const config = {
 setInterval(async () => {
     try {
         const response = await axios.get('https://rsi-sven.onrender.com/health');
-        console.log(`Health Check: ${response.status}`);
+        // console.log(`Health Check: ${response.status}`);
     } catch (err) {
         console.error('Ping failed:', err.message);
     }
@@ -2241,7 +2241,7 @@ async function bekle_60dk() {
     let second = kalan_sn * 1000;
 
     let waitFor = delay => new Promise(resolve => setTimeout(resolve, delay));
-    await waitFor(minute + second + 2000);
+    await waitFor(minute + second + 5000);
 }
 
 async function yeniden_baslat_60dk() {
