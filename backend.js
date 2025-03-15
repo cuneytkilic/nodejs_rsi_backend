@@ -253,10 +253,10 @@ let ozel_liste = ["QUICKUSDT", "MOODENGUSDT", "NEARUSDT", "RNDRUSDT", "GRTUSDT",
 
 import Binance from 'node-binance-api';
 const binance = new Binance().options({
-    APIKEY: 'BXL5lvixqVEZY5EsTjO54xqjan42kJPUd6547oKmtPoc9YD3AoHvuWQ4K50cinux', //cüneyt
-    APISECRET: 'pmYUkQLgyKj959aoxvjtKojqT2xzO4pWfHpTeGDsTwXk4QyEz39CQasv3eK1ju6P', //cüneyt
-    // APIKEY: 'KoankrgkpVEp6u6dljT7AebXNo5nhbW07ovdDCWpxXDfrLp1mrIbNLtnpeGTJRID', //ergün
-    // APISECRET: 'RgEd5U38P6Ykoah66uCljBKRLiGDDOIGFqsNdEdABHaGVVF5ORsgKZysPgqAGydc', //ergün
+    // APIKEY: 'BXL5lvixqVEZY5EsTjO54xqjan42kJPUd6547oKmtPoc9YD3AoHvuWQ4K50cinux', //cüneyt
+    // APISECRET: 'pmYUkQLgyKj959aoxvjtKojqT2xzO4pWfHpTeGDsTwXk4QyEz39CQasv3eK1ju6P', //cüneyt
+    APIKEY: 'KoankrgkpVEp6u6dljT7AebXNo5nhbW07ovdDCWpxXDfrLp1mrIbNLtnpeGTJRID', //ergün
+    APISECRET: 'RgEd5U38P6Ykoah66uCljBKRLiGDDOIGFqsNdEdABHaGVVF5ORsgKZysPgqAGydc', //ergün
 
     'recvWindow': 10000000
 });
@@ -321,7 +321,7 @@ async function start_bot() {
                 continue;
             }
             else{
-                btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi']);    
+                btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi']);
                 break;
             }
         }
