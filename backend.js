@@ -424,7 +424,7 @@ async function coin_tarama(coin_name) {
 
         try {
 
-            if(rsi_2<30 && rsi>30 && atr_degisim>2){
+            if(rsi_2<30 && rsi>30 && atr_degisim>3){
                 alim_sinyali_veren_coin_sayisi++
             }
 
@@ -462,7 +462,7 @@ async function coin_tarama(coin_name) {
 
             //ikinci sayfada gösterilen; sinyal gelmiş ve kapanmamış coin bilgilerini çekiyorum. (analiz_data)
             for (let k = data.length - 2; k > 5; k--) {
-                if (data[k]["rsi"] > 67) {
+                if (data[k]["rsi"] > 65) {
                     for (let a = k + 2; a < data.length - 1; a++) {
 
                         if (data[a - 1]["rsi"] < 30 && data[a]["rsi"] > 30 && data[a]["atr_degisim"] > 2) {
@@ -492,7 +492,7 @@ async function coin_tarama(coin_name) {
             //üçüncü sayfada gösterilen; sinyal vermiş coinlerin rsi>67 ise history sayfasında gösterilecek verileri (history_data)
             for(let i=0;i<sinyal_list.length;i++){
                 if(sinyal_list[i].coin_name == coin_name){
-                    if(rsi>67 && rsi_2<67){
+                    if(rsi>65 && rsi_2<65){
                         console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - rsi koşulu sağlandığı için historye kayıt edilecek.");
                         let exit_date_time = new Date(data[data.length - 2]['date_time'].getTime() + 1000 + (3 * 60 * 60 * 1000));
                         let exit_date = exit_date_time.toLocaleDateString();
