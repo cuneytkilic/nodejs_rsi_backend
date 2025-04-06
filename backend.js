@@ -465,7 +465,7 @@ async function coin_tarama(coin_name) {
                 if (data[k]["rsi"] > 65) {
                     for (let a = k + 2; a < data.length - 1; a++) {
 
-                        if (data[a - 1]["rsi"] < 30 && data[a]["rsi"] > 30 && data[a]["atr_degisim"] > 2) {
+                        if (data[a - 1]["rsi"] < 30 && data[a]["rsi"] > 30 && data[a]["atr_degisim"] > 3) {
                             let entryPrice = data[a]["close"]
                             let signal_date_time = new Date(data[a]["date_time"].getTime() + 1000);
                             let first_atr = parseFloat(data[a]["atr_degisim"]).toFixed(2) //ilk sinyal geldiğinde atr değeri
