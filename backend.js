@@ -132,7 +132,7 @@ async function insertRsiData_array(json) {
         const updatedHistoryData = existingData.history_data 
             ? [...existingData.history_data, ...history_list] // Eski + Yeni veriyi birleştir
             : history_list; // Eğer yoksa direkt yeni veriyi ata
-
+        console.log("Aktif Sinyaller: " + analiz_list.length + " - Sinyal Geçmişi: " + updatedHistoryData.length);
 
         // Firestore'a tek bir döküman olarak güncellenmiş veriyi ekleme
         await setDoc(docRef, {
