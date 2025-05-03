@@ -1183,6 +1183,7 @@ async function saat_calculate_indicators(coin_name) {
     return data
 
 }
+
 // let get_data_sayisi = 0
 async function saat_get_data(coin_name) {
     let data = []
@@ -1193,39 +1194,40 @@ async function saat_get_data(coin_name) {
 
         while (durum == true) {
 
-            await binance.futuresCandles(coin_name, "1h", { limit: 490 })
-                .then(json => {
-                    if(coin_name=="BTCUSDT"){
-                        console.log(json)
-                    }
-                    if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
-                        durum = false;
-                        //json[json.length-1][1] = openPrice
-                        //json[json.length-1][2] = maxPrice
-                        //json[json.length-1][3] = minPrice
-                        //json[json.length-1][4] = closePrice
+            let json = await binance.futuresCandles(coin_name, "1h", { limit: 490 })
+            .then(json => { return json })
 
-                        for (let i = 0; i < json.length; i++) {
-                            data.push({
-                                'coin_name': coin_name,
-                                'open': parseFloat(json[i][1]),
-                                'high': parseFloat(json[i][2]),
-                                'low': parseFloat(json[i][3]),
-                                'close': parseFloat(json[i][4]),
-                                'volume': parseFloat(json[i][5]),
-                                'date_time': new Date(json[i][6]),
-                                'date': new Date(json[i][6]).toLocaleDateString(),
-                                'time': new Date(json[i][6]).toLocaleTimeString(),
-                                'saat': new Date(json[i][6]).getHours()
-                            })
-                        }
+            if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
+                durum = false;
+                //json[json.length-1][1] = openPrice
+                //json[json.length-1][2] = maxPrice
+                //json[json.length-1][3] = minPrice
+                //json[json.length-1][4] = closePrice
 
-                    }
-                    else {
-                        // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
-                        durum = true;
-                    }
-                })
+                for (let i = 0; i < json.length; i++) {
+                    data.push({
+                        'coin_name': coin_name,
+                        'open': parseFloat(json[i][1]),
+                        'high': parseFloat(json[i][2]),
+                        'low': parseFloat(json[i][3]),
+                        'close': parseFloat(json[i][4]),
+                        'volume': parseFloat(json[i][5]),
+                        'date_time': new Date(json[i][6]),
+                        'date': new Date(json[i][6]).toLocaleDateString(),
+                        'time': new Date(json[i][6]).toLocaleTimeString(),
+                        'saat': new Date(json[i][6]).getHours()
+                    })
+                }
+
+            }
+            else {
+                // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
+                durum = true;
+            }
+
+            if(coin_name==="BTCUSDT"){
+                console.log(json)
+            }
 
             if (durum == true) {
                 await bekle(1);
