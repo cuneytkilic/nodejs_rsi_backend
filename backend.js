@@ -1195,7 +1195,9 @@ async function saat_get_data(coin_name) {
 
             await binance.futuresCandles(coin_name, "1h", { limit: 490 })
                 .then(json => {
-
+                    if(coin_name=="BTCUSDT"){
+                        console.log(json)
+                    }
                     if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
                         durum = false;
                         //json[json.length-1][1] = openPrice
