@@ -2881,6 +2881,7 @@ async function coinler() {
 
     await binance.futuresExchangeInfo()
         .then(json => {
+            console.log(json)
 
             for (let i = 0; i < json.symbols.length; i++) {
                 if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
