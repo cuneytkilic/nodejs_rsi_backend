@@ -1225,7 +1225,7 @@ async function saat_get_data(coin_name) {
                 durum = true;
             }
 
-            if(coin_name==="BTCUSDT"){
+            if(coin_name==="BTCUSDT" && json.length<300){
                 console.log(json)
             }
 
@@ -2882,18 +2882,18 @@ async function coinler() {
     let coin_list = []
 
     await binance.futuresExchangeInfo()
-        .then(json => {
+    .then(json => {
 
-            for (let i = 0; i < json.symbols.length; i++) {
-                if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
-                    if (ignored_coin_list.indexOf(json.symbols[i].symbol) === -1) { //aranan eleman ignored_coin_list dizisinde yok ise coin_list dizisine eklenecek.
-                        coin_list.push(json.symbols[i].symbol);
-                    }
+        for (let i = 0; i < json.symbols.length; i++) {
+            if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
+                if (ignored_coin_list.indexOf(json.symbols[i].symbol) === -1) { //aranan eleman ignored_coin_list dizisinde yok ise coin_list dizisine eklenecek.
+                    coin_list.push(json.symbols[i].symbol);
                 }
-
             }
-        })
-        .catch(err => { console.log(new Date().toLocaleTimeString() + " - err1: " + err); })
+
+        }
+    })
+    .catch(err => { console.log(new Date().toLocaleTimeString() + " - err1: " + err); })
 
     return coin_list
 }
