@@ -132,7 +132,7 @@ async function insertRsiData_array(json) {
         const updatedHistoryData = existingData.history_data 
             ? [...existingData.history_data, ...history_list] // Eski + Yeni veriyi birleştir
             : history_list; // Eğer yoksa direkt yeni veriyi ata
-        console.log("Aktif Sinyaller: " + analiz_list.length + " - Sinyal Geçmişi: " + updatedHistoryData.length);
+        console.log("Aktif Sinyaller: " + filtered_sorted_list.length);
 
         // Firestore'a tek bir döküman olarak güncellenmiş veriyi ekleme
         await setDoc(docRef, {
@@ -310,21 +310,12 @@ async function start_bot() {
         count_rsi = 0
         sum_rsi = 0
 
-        let btc_data = null;
-        let btc_rsi = null;
+        
 
-        while (true) {
-            btc_data = await saat_calculate_indicators("BTCUSDT");
-            if(btc_data===null){
-                console.log("btc data boş geldi.");
-                await bekle(30);
-                continue;
-            }
-            else{
-                btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi']);
-                break;
-            }
-        }
+        let btc_data = await saat_get_data("BTCUSDT")
+        await saat_calculate_rsi(btc_data);
+        await saat_calculate_atr(btc_data);
+        let btc_rsi = parseFloat(btc_data[btc_data.length-2]['rsi'])
         
 
         for (let i = 0; i < coin_list.length; i++) {
