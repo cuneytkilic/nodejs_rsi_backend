@@ -317,7 +317,7 @@ async function start_bot() {
             btc_data = await saat_calculate_indicators("BTCUSDT");
             if(btc_data===null){
                 console.log("btc data boş geldi.");
-                await bekle(5);
+                await bekle(30);
                 continue;
             }
             else{
@@ -1188,13 +1188,14 @@ async function saat_calculate_indicators(coin_name) {
 async function saat_get_data(coin_name) {
     let data = []
     let durum = true;
+    let json = null;
     // get_data_sayisi++
     // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data_sayisi: " + get_data_sayisi)
     try {
 
         while (durum == true) {
 
-            let json = await binance.futuresCandles(coin_name, "1h", { limit: 490 })
+            json = await binance.futuresCandles(coin_name, "1h", { limit: 490 })
             .then(json => { return json })
 
             if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
@@ -1220,14 +1221,7 @@ async function saat_get_data(coin_name) {
                 }
 
             }
-            else {
-                // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
-                durum = true;
-            }
 
-            if(coin_name==="BTCUSDT" && json.length<300){
-                console.log(json)
-            }
 
             if (durum == true) {
                 await bekle(1);
@@ -1237,6 +1231,7 @@ async function saat_get_data(coin_name) {
     }
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data() hata: " + error)
+        console.log(json);
         return null
     }
 
