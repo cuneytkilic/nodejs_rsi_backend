@@ -298,7 +298,6 @@ async function start_bot() {
 
     while (true) {
         sinyal_list = await sinyal_veren_coinler();
-        await bekle_60dk();
 
         json = []
         analiz_list = []
@@ -320,7 +319,7 @@ async function start_bot() {
 
         for (let i = 0; i < coin_list.length; i++) {
             coin_tarama(coin_list[i])
-            await bekle(0.01)
+            await bekle(0.05)
         }
 
         while (taranan_coin_sayisi < coin_list.length) {
@@ -376,6 +375,8 @@ async function start_bot() {
         else {
             console.log(new Date().toLocaleTimeString() + " - veri gelmediği için veritabanı güncellenmedi.")
         }
+        
+        await bekle_60dk();
     }
 
 }
@@ -395,27 +396,27 @@ async function emir_diz(coin_name) {
 }
 
 async function coin_tarama(coin_name) {
+    try {
 
-    let data = await saat_calculate_indicators(coin_name);
+        let data = await saat_calculate_indicators(coin_name);
 
-    if (data === null || typeof data === 'undefined' || data.length < 100) {
-        taranan_coin_sayisi++
-        // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + taranan_coin_sayisi)
-        return
-    }
-    else {
+        if (data === null || typeof data === 'undefined' || data.length < 100) {
+            // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + taranan_coin_sayisi)
+            // return
+        }
+        else {
 
-        let rsi = parseFloat(data[data.length - 2]['rsi'].toFixed(2))
-        let rsi_2 = parseFloat(data[data.length - 3]['rsi'].toFixed(2))
-        let atr_degisim = parseFloat(data[data.length - 2]['atr_degisim'].toFixed(2))
-        let atr_degisim_2 = parseFloat(data[data.length - 3]['atr_degisim'].toFixed(2))
-        let closePrice = parseFloat(data[data.length - 2]['close'])
+            let rsi = parseFloat(data[data.length - 2]['rsi'].toFixed(2))
+            let rsi_2 = parseFloat(data[data.length - 3]['rsi'].toFixed(2))
+            let atr_degisim = parseFloat(data[data.length - 2]['atr_degisim'].toFixed(2))
+            let atr_degisim_2 = parseFloat(data[data.length - 3]['atr_degisim'].toFixed(2))
+            let closePrice = parseFloat(data[data.length - 2]['close'])
 
-        
 
-        try {
 
-            if(rsi_2<30 && rsi>30 && atr_degisim>3){
+
+
+            if (rsi_2 < 30 && rsi > 30 && atr_degisim > 3) {
                 alim_sinyali_veren_coin_sayisi++
             }
 
@@ -465,13 +466,13 @@ async function coin_tarama(coin_name) {
                             let rsi = parseFloat(data[data.length - 2]["rsi"]).toFixed(2)
                             let degisim = parseFloat(((lastPrice - entryPrice) / entryPrice * 100).toFixed(2))
                             let gecen_saat = Math.round(saatFarki(signal_date_time, new Date())); //kaç saat önce sinyal geldiğinin bilgisini verir.
-                            
+
                             signal_date_time = new Date(signal_date_time.getTime() + (3 * 60 * 60 * 1000))
                             let signal_date = signal_date_time.toLocaleDateString();
-                            let signal_time = signal_date_time.toLocaleTimeString("tr-TR", {hour: "2-digit", minute: "2-digit"});
+                            let signal_time = signal_date_time.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 
                             //ikinci sayfada gösterilen; sinyal veren coin bilgileri
-                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date_time": signal_date_time, "signal_date": signal_date, "signal_time": signal_time, "first_atr": first_atr, "sinyal_zamani": gecen_saat});
+                            analiz_list.push({ "coin_name": data[a].coin_name, "entryPrice": entryPrice, "lastPrice": lastPrice, "degisim": degisim, "atr": atr_degisim, "rsi": rsi, "rank": rank, "signal_date_time": signal_date_time, "signal_date": signal_date, "signal_time": signal_time, "first_atr": first_atr, "sinyal_zamani": gecen_saat });
 
                             break
                         }
@@ -481,16 +482,16 @@ async function coin_tarama(coin_name) {
             }
 
             //üçüncü sayfada gösterilen; sinyal vermiş coinlerin rsi>67 ise history sayfasında gösterilecek verileri (history_data)
-            for(let i=0;i<sinyal_list.length;i++){
-                if(sinyal_list[i].coin_name == coin_name){
-                    if(rsi>65 && rsi_2<65){
+            for (let i = 0; i < sinyal_list.length; i++) {
+                if (sinyal_list[i].coin_name == coin_name) {
+                    if (rsi > 65 && rsi_2 < 65) {
                         console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - rsi koşulu sağlandığı için historye kayıt edilecek.");
                         let exit_date_time = new Date(data[data.length - 2]['date_time'].getTime() + 1000 + (3 * 60 * 60 * 1000));
                         let exit_date = exit_date_time.toLocaleDateString();
-                        let exit_time = exit_date_time.toLocaleTimeString("tr-TR", {hour: "2-digit", minute: "2-digit"});
+                        let exit_time = exit_date_time.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
                         let result_degisim = parseFloat(((closePrice - sinyal_list[i].entryPrice) / sinyal_list[i].entryPrice * 100).toFixed(2))
 
-                        history_list.push({"coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": exit_date_time, "exit_date": exit_date, "exit_time": exit_time, "rank": sinyal_list[i].rank});
+                        history_list.push({ "coin_name": sinyal_list[i].coin_name, "entryPrice": sinyal_list[i].entryPrice, "exitPrice": closePrice, "result_degisim": result_degisim, "signal_date": sinyal_list[i].signal_date, "signal_time": sinyal_list[i].signal_time, "exit_date_time": exit_date_time, "exit_date": exit_date, "exit_time": exit_time, "rank": sinyal_list[i].rank });
                     }
                     break;
                 }
@@ -509,15 +510,12 @@ async function coin_tarama(coin_name) {
             });
         }
 
-
-
-        catch (error) {
-            console.log(new Date().toLocaleTimeString() + " - coin_tarama() içinde hata: " + error)
-        }
-        finally {
-            taranan_coin_sayisi++
-        }
-
+    }
+    catch (error) {
+        console.log(new Date().toLocaleTimeString() + " - coin_tarama() içinde hata: " + error)
+    }
+    finally {
+        taranan_coin_sayisi++
     }
 
 }
