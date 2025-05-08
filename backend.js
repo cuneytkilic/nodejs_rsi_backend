@@ -1213,7 +1213,7 @@ async function saat_get_data(coin_name) {
 
 
             if (durum == true) {
-                await bekle(1);
+                await bekle(2);
             }
 
         }
@@ -1221,6 +1221,7 @@ async function saat_get_data(coin_name) {
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data() hata: " + error)
         console.log(json);
+        console.log(coin_name + " - saat_get_data() hata verdi, veri çekilemedi.")
         return null
     }
 
