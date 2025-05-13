@@ -132,7 +132,26 @@ async function insertRsiData_array(json) {
         const updatedHistoryData = existingData.history_data 
             ? [...existingData.history_data, ...history_list] // Eski + Yeni veriyi birleştir
             : history_list; // Eğer yoksa direkt yeni veriyi ata
+            
         console.log("Aktif Sinyaller: " + filtered_sorted_list.length);
+
+        if (filtered_sorted_list.length > 0) {
+            // Firestore'a tek bir döküman olarak güncellenmiş veriyi ekleme
+            await setDoc(docRef, {
+                timestamp: insertDateTime, // Eklenen zaman
+                data: json, // 350 coin verisini tek bir dizi olarak kaydet
+                analiz_data: filtered_sorted_list, // Analize göre koşullara uyan coinlerin listesi
+                history_data: updatedHistoryData // Güncellenmiş history_data dizisi
+            });
+        }
+        else{
+            // Firestore'a tek bir döküman olarak güncellenmiş veriyi ekleme
+            await setDoc(docRef, {
+                timestamp: insertDateTime, // Eklenen zaman
+                data: json, // 350 coin verisini tek bir dizi olarak kaydet
+                history_data: updatedHistoryData // Güncellenmiş history_data dizisi
+            });
+        }
 
         // Firestore'a tek bir döküman olarak güncellenmiş veriyi ekleme
         await setDoc(docRef, {
