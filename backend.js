@@ -421,7 +421,7 @@ async function coin_tarama(coin_name) {
 
         if (data === null || typeof data === 'undefined' || data.length < 100) {
             // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + taranan_coin_sayisi)
-            // return
+            return
         }
         else {
 
@@ -531,7 +531,7 @@ async function coin_tarama(coin_name) {
 
     }
     catch (error) {
-        console.log(new Date().toLocaleTimeString() + " - coin_tarama() içinde hata: " + error)
+        console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - coin_tarama() içinde hata: " + error)
     }
     finally {
         taranan_coin_sayisi++
@@ -1247,7 +1247,7 @@ async function saat_get_data(coin_name) {
     }
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data() hata: " + error)
-        console.log(json);
+        console.log(error);
         console.log(coin_name + " - saat_get_data() hata verdi, veri çekilemedi.")
         return null
     }
