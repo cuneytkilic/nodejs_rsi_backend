@@ -310,6 +310,7 @@ async function get_coin_list_and_market_cap() {
 
 start_bot();
 async function start_bot() {
+
     await bekle(3);
     coin_list = await coinler();
 
@@ -421,7 +422,7 @@ async function coin_tarama(coin_name) {
 
         if (data === null || typeof data === 'undefined' || data.length < 100) {
             // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + taranan_coin_sayisi)
-            return
+            return null
         }
         else {
 
@@ -1221,12 +1222,13 @@ async function saat_get_data(coin_name) {
                     for(let i=0;i<json.length;i++){
                         data.push({
                             'coin_name': coin_name,
-                            'open': parseFloat(json[i][1]), 
-                            'high': parseFloat(json[i][2]), 
-                            'low': parseFloat(json[i][3]), 
-                            'close': parseFloat(json[i][4]), 
-                            'volume': parseFloat(json[i][5]), 
-                            'date': new Date(json[i][6]).toLocaleDateString(), 
+                            'open': parseFloat(json[i][1]),
+                            'high': parseFloat(json[i][2]),
+                            'low': parseFloat(json[i][3]),
+                            'close': parseFloat(json[i][4]),
+                            'volume': parseFloat(json[i][5]),
+                            'date_time': new Date(json[i][6]),
+                            'date': new Date(json[i][6]).toLocaleDateString(),
                             'time': new Date(json[i][6]).toLocaleTimeString(),
                             'saat': new Date(json[i][6]).getHours()
                         })
