@@ -1197,59 +1197,59 @@ async function saat_calculate_indicators(coin_name) {
 async function saat_get_data(coin_name) {
     let data = []
     let durum = true;
-    
+
     // get_data_sayisi++
     // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data_sayisi: " + get_data_sayisi)
     try {
 
         while (durum == true) {
-            
-            await binance.futuresCandles(coin_name, "1h", {limit:500})
-            .then(json => {
-                if(json.length<490){
-                    durum = false;
-                    return;
-                }
 
-                // if (!(json && json.length > 0)){
-                //     console.log(new Date().toLocaleTimeString() + " - hata: " + coin_name + " - json tanımlı değil.")
-                //     durum == false
-                //     return
-                // }
-
-                if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()){
-                    durum = false;
-                    
-                    if(json.length<490){
+            await binance.futuresCandles(coin_name, "1h", { limit: 500 })
+                .then(json => {
+                    if (!json || json.length < 490) {
+                        durum = false;
                         return;
                     }
 
-                    //json[json.length-1][1] = openPrice
-                    //json[json.length-1][2] = maxPrice
-                    //json[json.length-1][3] = minPrice
-                    //json[json.length-1][4] = closePrice
+                    const son = json[json.length - 1];
 
-                    for(let i=0;i<json.length;i++){
-                        data.push({
-                            'coin_name': coin_name,
-                            'open': parseFloat(json[i][1]),
-                            'high': parseFloat(json[i][2]),
-                            'low': parseFloat(json[i][3]),
-                            'close': parseFloat(json[i][4]),
-                            'volume': parseFloat(json[i][5]),
-                            'date_time': new Date(json[i][6]),
-                            'date': new Date(json[i][6]).toLocaleDateString(),
-                            'time': new Date(json[i][6]).toLocaleTimeString(),
-                            'saat': new Date(json[i][6]).getHours()
-                        })
+                    if (!Array.isArray(son) || son.length < 7) {
+                        console.log(`${coin_name} için son veri eksik veya hatalı.`);
+                        durum = false;
+                        return;
                     }
 
-                } 
-                else {
-                    // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
-                    durum = true;
-                }   
-            })
+                    const sonSaat = new Date(son[6]).getHours();
+                    const simdiSaat = new Date().getHours();
+
+                    if (sonSaat == simdiSaat) {
+                        durum = false;
+
+                        for (let i = 0; i < json.length; i++) {
+                            const row = json[i];
+                            if (!Array.isArray(row) || row.length < 7) continue; // veri eksikse atla
+
+                            data.push({
+                                'coin_name': coin_name,
+                                'open': parseFloat(row[1]),
+                                'high': parseFloat(row[2]),
+                                'low': parseFloat(row[3]),
+                                'close': parseFloat(row[4]),
+                                'volume': parseFloat(row[5]),
+                                'date_time': new Date(row[6]),
+                                'date': new Date(row[6]).toLocaleDateString(),
+                                'time': new Date(row[6]).toLocaleTimeString(),
+                                'saat': new Date(row[6]).getHours()
+                            });
+                        }
+                    } else {
+                        durum = true;
+                    }
+                })
+                .catch(err => {
+                    console.log(`${coin_name} için futuresCandles hatası:`, err.message);
+                    durum = false;
+                });
 
             if (durum == true) {
                 await bekle(1);
@@ -1264,13 +1264,13 @@ async function saat_get_data(coin_name) {
         return null
     }
 
-    if(data.length<490){
+    if (data.length < 490) {
         return null
     }
-    else{
+    else {
         return data
     }
-    
+
 }
 
 async function saat_calculate_rsi(data) {
