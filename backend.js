@@ -1197,7 +1197,7 @@ async function saat_calculate_indicators(coin_name) {
 async function saat_get_data(coin_name) {
     let data = []
     let durum = true;
-    let json = null;
+    
     // get_data_sayisi++
     // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data_sayisi: " + get_data_sayisi)
     try {
@@ -1206,6 +1206,11 @@ async function saat_get_data(coin_name) {
             
             await binance.futuresCandles(coin_name, "1h", {limit:500})
             .then(json => {
+                if(json.length<490){
+                    durum = false;
+                    return;
+                }
+
                 // if (!(json && json.length > 0)){
                 //     console.log(new Date().toLocaleTimeString() + " - hata: " + coin_name + " - json tanımlı değil.")
                 //     durum == false
@@ -1214,6 +1219,11 @@ async function saat_get_data(coin_name) {
 
                 if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()){
                     durum = false;
+                    
+                    if(json.length<490){
+                        return;
+                    }
+
                     //json[json.length-1][1] = openPrice
                     //json[json.length-1][2] = maxPrice
                     //json[json.length-1][3] = minPrice
@@ -1254,8 +1264,13 @@ async function saat_get_data(coin_name) {
         return null
     }
 
-    // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - data.length: " + data.length)
-    return data
+    if(data.length<490){
+        return null
+    }
+    else{
+        return data
+    }
+    
 }
 
 async function saat_calculate_rsi(data) {
