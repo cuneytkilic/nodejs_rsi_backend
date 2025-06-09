@@ -49,11 +49,11 @@ setInterval(async () => {
     try {
         const response = await axios.get('https://rsi-sven.onrender.com/health');
         if (ping_sayisi > 0) {
-            console.log(`${ping_sayisi} Health Check: ${response.status}`);
+            // console.log(`${ping_sayisi} Health Check: ${response.status}`);
             ping_sayisi--
         }
     } catch (err) {
-        console.error('Ping failed:', err.message);
+        // console.error('Ping failed:', err.message);
         ping_sayisi = 10;
     }
 }, 1 * 30 * 1000);
@@ -314,6 +314,7 @@ async function start_bot() {
 
     await bekle(3);
     coin_list = await coinler();
+    
 
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
 
