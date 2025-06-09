@@ -48,10 +48,6 @@ const config = {
 setInterval(async () => {
     try {
         const response = await axios.get('https://rsi-sven.onrender.com/health');
-        if (ping_sayisi > 0) {
-            // console.log(`${ping_sayisi} Health Check: ${response.status}`);
-            ping_sayisi--
-        }
     } catch (err) {
         // console.error('Ping failed:', err.message);
         ping_sayisi = 10;
