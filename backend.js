@@ -331,6 +331,7 @@ async function start_bot() {
         sum_rsi = 0
 
 
+        await bekle(10)
 
         let btc_data = await saat_get_data("BTCUSDT")
         await saat_calculate_rsi(btc_data);
@@ -1198,52 +1199,35 @@ async function saat_calculate_indicators(coin_name) {
 
 // let get_data_sayisi = 0
 async function saat_get_data(coin_name) {
+
     let data = []
-    let durum = true;
 
-    try {
+    let json = await binance.futuresCandles(coin_name, "1h", { limit: 500 });
 
-        while (durum == true) {
+    if (json && Array.isArray(json) && json.length > 0) {
 
-            let json = await binance.futuresCandles(coin_name, "1h", { limit: 500 });
-
-            if (json && Array.isArray(json) && json.length > 0) {
-
-                if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
-                    durum = false;
-                    for (let i = 0; i < json.length; i++) {
-                        data.push({
-                            'coin_name': coin_name,
-                            'open': parseFloat(json[i][1]),
-                            'high': parseFloat(json[i][2]),
-                            'low': parseFloat(json[i][3]),
-                            'close': parseFloat(json[i][4]),
-                            'volume': parseFloat(json[i][5]),
-                            'date_time': new Date(json[i][6]),
-                            'date': new Date(json[i][6]).toLocaleDateString(),
-                            'time': new Date(json[i][6]).toLocaleTimeString(),
-                            'saat': new Date(json[i][6]).getHours()
-                        });
-                    }
-
-                    return data
-                }
-                
-            }
-            else if (json.code < 0) { //request hatası verdiyse;
-                console.log(new Date().toLocaleTimeString() + " - " + coin_name + ", saat_get_data() HATA verdi => " + json.msg)
-                return null
+        if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
+            for (let i = 0; i < json.length; i++) {
+                data.push({
+                    'coin_name': coin_name,
+                    'open': parseFloat(json[i][1]),
+                    'high': parseFloat(json[i][2]),
+                    'low': parseFloat(json[i][3]),
+                    'close': parseFloat(json[i][4]),
+                    'volume': parseFloat(json[i][5]),
+                    'date_time': new Date(json[i][6]),
+                    'date': new Date(json[i][6]).toLocaleDateString(),
+                    'time': new Date(json[i][6]).toLocaleTimeString(),
+                    'saat': new Date(json[i][6]).getHours()
+                });
             }
 
-            if (durum == true) {
-                console.log(new Date().toLocaleTimeString() + " - " + coin_name + ", mum kapanışı 10sn bekleniyor... ")
-                await bekle(10);
-            }
-
+            return data
         }
+        
     }
-    catch (error) {
-        console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data() hata: " + error)
+    else if (json.code < 0) { //request hatası verdiyse;
+        console.log(new Date().toLocaleTimeString() + " - " + coin_name + ", saat_get_data() HATA verdi => " + json.msg)
         return null
     }
 
