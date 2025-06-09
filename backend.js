@@ -341,7 +341,7 @@ async function start_bot() {
 
         for (let i = 0; i < coin_list.length; i++) {
             await coin_tarama(coin_list[i])
-            // await bekle(0.1)
+            await bekle(0.1)
 
         }
         /*
@@ -1223,6 +1223,9 @@ async function saat_get_data(coin_name) {
             }
 
             return data
+        }
+        else{
+            return null
         }
         
     }
