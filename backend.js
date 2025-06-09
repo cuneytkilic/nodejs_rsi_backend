@@ -48,13 +48,13 @@ const config = {
 setInterval(async () => {
     try {
         const response = await axios.get('https://rsi-sven.onrender.com/health');
-        if(ping_sayisi>0){
+        if (ping_sayisi > 0) {
             console.log(`${ping_sayisi} Health Check: ${response.status}`);
-            ping_sayisi--   
+            ping_sayisi--
         }
     } catch (err) {
         console.error('Ping failed:', err.message);
-        ping_sayisi=10;
+        ping_sayisi = 10;
     }
 }, 1 * 30 * 1000);
 
@@ -129,10 +129,10 @@ async function insertRsiData_array(json) {
         let existingData = docSnap.exists() ? docSnap.data() : {};
 
         // `history_data` varsa yeni veriyi ekle, yoksa oluştur
-        const updatedHistoryData = existingData.history_data 
+        const updatedHistoryData = existingData.history_data
             ? [...existingData.history_data, ...history_list] // Eski + Yeni veriyi birleştir
             : history_list; // Eğer yoksa direkt yeni veriyi ata
-            
+
         console.log("Aktif Sinyaller: " + filtered_sorted_list.length + " - Coin Sayısı: " + json.length);
 
         if (filtered_sorted_list.length > 0) {
@@ -144,7 +144,7 @@ async function insertRsiData_array(json) {
                 history_data: updatedHistoryData // Güncellenmiş history_data dizisi
             });
         }
-        else{
+        else {
             // Firestore'a tek bir döküman olarak güncellenmiş veriyi ekleme
             await setDoc(docRef, {
                 timestamp: insertDateTime, // Eklenen zaman
@@ -173,7 +173,7 @@ const sinyal_veren_coinler = async () => {
     querySnapshot.forEach((doc) => {
         const data = doc.data();
 
-        for(let i=0;i<data.analiz_data.length;i++){
+        for (let i = 0; i < data.analiz_data.length; i++) {
             coin_list.push(data.analiz_data[i]);
         }
     });
@@ -329,13 +329,13 @@ async function start_bot() {
         count_rsi = 0
         sum_rsi = 0
 
-        
+
 
         let btc_data = await saat_get_data("BTCUSDT")
         await saat_calculate_rsi(btc_data);
         await saat_calculate_atr(btc_data);
-        let btc_rsi = parseFloat(btc_data[btc_data.length-2]['rsi'])
-        
+        let btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi'])
+
 
         for (let i = 0; i < coin_list.length; i++) {
             coin_tarama(coin_list[i])
@@ -384,8 +384,8 @@ async function start_bot() {
 
         }
 
-        if(alim_sinyali_veren_coin_sayisi>10){
-            send_mail_cuneyt(saat + " - Piyasa yükselebilir, alım sinyali veren coin sayısı 10dan fazla!", mail_mesaj+"\nalim_sinyali_veren_coin_sayisi: "+alim_sinyali_veren_coin_sayisi);
+        if (alim_sinyali_veren_coin_sayisi > 10) {
+            send_mail_cuneyt(saat + " - Piyasa yükselebilir, alım sinyali veren coin sayısı 10dan fazla!", mail_mesaj + "\nalim_sinyali_veren_coin_sayisi: " + alim_sinyali_veren_coin_sayisi);
         }
 
         //saatlik veri çekildi ise json.length>0 olacaktır. veri çekilemediğinde insert işlemi yapılmayacak yani hata vermesi engellenecektir.
@@ -395,7 +395,7 @@ async function start_bot() {
         else {
             console.log(new Date().toLocaleTimeString() + " - veri gelmediği için veritabanı güncellenmedi.")
         }
-        
+
         await bekle_60dk();
     }
 
@@ -1198,59 +1198,46 @@ async function saat_get_data(coin_name) {
     let data = []
     let durum = true;
 
-    // get_data_sayisi++
-    // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data_sayisi: " + get_data_sayisi)
     try {
 
         while (durum == true) {
 
             await binance.futuresCandles(coin_name, "1h", { limit: 500 })
-                .then(json => {
-                    if (!json || json.length < 490) {
-                        durum = false;
-                        return;
-                    }
+            .then(json => {
+                // if (!(json && json.length > 0)){
+                //     console.log(new Date().toLocaleTimeString() + " - hata: " + coin_name + " - json tanımlı değil.")
+                //     durum == false
+                //     return
+                // }
 
-                    const son = json[json.length - 1];
-
-                    if (!Array.isArray(son) || son.length < 7) {
-                        console.log(`${coin_name} için son veri eksik veya hatalı.`);
-                        console.log(json)
-                        durum = false;
-                        return;
-                    }
-
-                    const sonSaat = new Date(son[6]).getHours();
-                    const simdiSaat = new Date().getHours();
-
-                    if (sonSaat == simdiSaat) {
-                        durum = false;
-
-                        for (let i = 0; i < json.length; i++) {
-                            const row = json[i];
-                            if (!Array.isArray(row) || row.length < 7) continue; // veri eksikse atla
-
-                            data.push({
-                                'coin_name': coin_name,
-                                'open': parseFloat(row[1]),
-                                'high': parseFloat(row[2]),
-                                'low': parseFloat(row[3]),
-                                'close': parseFloat(row[4]),
-                                'volume': parseFloat(row[5]),
-                                'date_time': new Date(row[6]),
-                                'date': new Date(row[6]).toLocaleDateString(),
-                                'time': new Date(row[6]).toLocaleTimeString(),
-                                'saat': new Date(row[6]).getHours()
-                            });
-                        }
-                    } else {
-                        durum = true;
-                    }
-                })
-                .catch(err => {
-                    console.log(`${coin_name} için futuresCandles hatası:`, err.message);
+                if (new Date(json[json.length - 1][6]).getHours() == new Date().getHours()) {
                     durum = false;
-                });
+                    //json[json.length-1][1] = openPrice
+                    //json[json.length-1][2] = maxPrice
+                    //json[json.length-1][3] = minPrice
+                    //json[json.length-1][4] = closePrice
+
+                    for (let i = 0; i < json.length; i++) {
+                        data.push({
+                            'coin_name': coin_name,
+                            'open': parseFloat(row[1]),
+                            'high': parseFloat(row[2]),
+                            'low': parseFloat(row[3]),
+                            'close': parseFloat(row[4]),
+                            'volume': parseFloat(row[5]),
+                            'date_time': new Date(row[6]),
+                            'date': new Date(row[6]).toLocaleDateString(),
+                            'time': new Date(row[6]).toLocaleTimeString(),
+                            'saat': new Date(row[6]).getHours()
+                        });
+                    }
+
+                }
+                else {
+                    // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - " + new Date(json[json.length - 1][6]).getHours() + " == " + new Date().getHours() + ", " +  new Date(json[json.length - 1][6]).getMinutes() + " == " + (new Date().getMinutes() + 59))
+                    durum = true;
+                }
+            })
 
             if (durum == true) {
                 await bekle(1);
@@ -1260,17 +1247,11 @@ async function saat_get_data(coin_name) {
     }
     catch (error) {
         // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - get_data() hata: " + error)
-        console.log(error);
-        console.log(coin_name + " - saat_get_data() hata verdi, veri çekilemedi.")
         return null
     }
 
-    if (data.length < 490) {
-        return null
-    }
-    else {
-        return data
-    }
+    // console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - data.length: " + data.length)
+    return data
 
 }
 
@@ -2912,18 +2893,18 @@ async function coinler() {
     let coin_list = []
 
     await binance.futuresExchangeInfo()
-    .then(json => {
+        .then(json => {
 
-        for (let i = 0; i < json.symbols.length; i++) {
-            if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
-                if (ignored_coin_list.indexOf(json.symbols[i].symbol) === -1) { //aranan eleman ignored_coin_list dizisinde yok ise coin_list dizisine eklenecek.
-                    coin_list.push(json.symbols[i].symbol);
+            for (let i = 0; i < json.symbols.length; i++) {
+                if (json.symbols[i].status == 'TRADING' && json.symbols[i].quoteAsset == 'USDT' && json.symbols[i].contractType == 'PERPETUAL') {
+                    if (ignored_coin_list.indexOf(json.symbols[i].symbol) === -1) { //aranan eleman ignored_coin_list dizisinde yok ise coin_list dizisine eklenecek.
+                        coin_list.push(json.symbols[i].symbol);
+                    }
                 }
-            }
 
-        }
-    })
-    .catch(err => { console.log(new Date().toLocaleTimeString() + " - err1: " + err); })
+            }
+        })
+        .catch(err => { console.log(new Date().toLocaleTimeString() + " - err1: " + err); })
 
     return coin_list
 }
