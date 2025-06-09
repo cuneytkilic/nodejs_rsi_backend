@@ -133,7 +133,7 @@ async function insertRsiData_array(json) {
             ? [...existingData.history_data, ...history_list] // Eski + Yeni veriyi birleştir
             : history_list; // Eğer yoksa direkt yeni veriyi ata
             
-        console.log("Aktif Sinyaller: " + filtered_sorted_list.length);
+        console.log("Aktif Sinyaller: " + filtered_sorted_list.length + " - Coin Sayısı: " + json.length);
 
         if (filtered_sorted_list.length > 0) {
             // Firestore'a tek bir döküman olarak güncellenmiş veriyi ekleme
@@ -1215,6 +1215,7 @@ async function saat_get_data(coin_name) {
 
                     if (!Array.isArray(son) || son.length < 7) {
                         console.log(`${coin_name} için son veri eksik veya hatalı.`);
+                        console.log(json)
                         durum = false;
                         return;
                     }
