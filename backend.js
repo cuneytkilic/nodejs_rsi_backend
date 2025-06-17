@@ -112,7 +112,7 @@ async function insertRsiData_array(json) {
     try {
         // Rank < 200 filtresi uygula ve degisim değerine göre büyükten küçüğe sırala
         const filtered_sorted_list = analiz_list
-            .filter(item => item.rank !== null && item.rank < 300) // null olmayan ve rank < 200 olanları seç
+            .filter(item => item.rank !== null && item.rank < 200) // null olmayan ve rank < 200 olanları seç
             .sort((a, b) => b.degisim - a.degisim); // degisim değerine göre sıralama
 
         const insertDateTime = new Date();
@@ -338,7 +338,7 @@ async function start_bot() {
 
         for (let i = 0; i < coin_list.length; i++) {
             await coin_tarama(coin_list[i])
-            await bekle(1)
+            await bekle(1.5)
 
         }
         /*
