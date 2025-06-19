@@ -313,6 +313,12 @@ async function start_bot() {
     
 
     console.log(new Date().toLocaleTimeString() + " - başladı. coin sayısı: " + coin_list.length)
+    if(coin_list.length==0){
+        console.log(new Date().toLocaleTimeString() + " - saat başına kadar beklenecek ve tekrar başlatılacak.")
+        await bekle_60dk();
+        start_bot();
+        return;
+    }
 
     while (true) {
         sinyal_list = await sinyal_veren_coinler();
