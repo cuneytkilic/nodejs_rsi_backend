@@ -304,7 +304,7 @@ async function get_coin_list_and_market_cap() {
 }
 
 
-start_bot();
+//start_bot();
 async function start_bot() {
     
 
@@ -340,11 +340,12 @@ async function start_bot() {
         await saat_calculate_rsi(btc_data);
         await saat_calculate_atr(btc_data);
         let btc_rsi = parseFloat(btc_data[btc_data.length - 2]['rsi'])
+        console.log(new Date().toLocaleTimeString() + " - BTC RSI: " + btc_rsi.toFixed(2))
 
 
         for (let i = 0; i < coin_list.length; i++) {
             await coin_tarama(coin_list[i])
-            await bekle(1.5)
+            await bekle(0.1)
 
         }
         /*
