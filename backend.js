@@ -1206,6 +1206,7 @@ async function saat_get_data(coin_name) {
     let data = []
 
     let json = await binance.futuresCandles(coin_name, "1h", { limit: 500 });
+    console.log(new Date().toLocaleTimeString() + " - " + coin_name + " - json.length: " + json.length);
 
     if (json && Array.isArray(json) && json.length > 0) {
 
